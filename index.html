@@ -75,7 +75,10 @@
 
         .svg-tri polygon { fill: rgba(255,255,255,0.05); stroke-width: 2; stroke-linejoin: round; }
         .p1-color { stroke: #0ff; } .p2-color { stroke: #c084fc; }
-        .tri-text { fill: #fff; font-weight: bold; text-anchor: middle; alignment-baseline: middle; }
+        
+        /* Level 3 專用顏色 */
+        .svg-tri.p1-color[fill*="0.05"] { fill: rgba(0, 255, 255, 0.15) !important; }
+        .svg-tri.p2-color[fill*="0.05"] { fill: rgba(192, 132, 252, 0.15) !important; }
 
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
@@ -116,7 +119,7 @@
             min-height: 220px;
         }
         body.practice-active #p1-svg-container svg {
-            transform: scale(1); /* 恢復為正常 100% 倍率 */
+            transform: scale(1.12); /* 放大 SVG 圖形 */
             overflow: visible; 
         }
     </style>
@@ -214,9 +217,10 @@
 
             <div class="mb-5">
                 <label class="block text-cyan-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">DIFFICULTY</label>
-                <div class="flex gap-3">
-                    <button id="btn-lvl1" onclick="setDiff(1)" class="flex-1 py-2 md:py-3 bg-cyan-600/90 text-white rounded-xl font-bold border-2 border-cyan-400 font-space text-base md:text-lg transition shadow-[0_0_10px_rgba(0,255,255,0.5)]">Level 1</button>
-                    <button id="btn-lvl2" onclick="setDiff(2)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-lg transition">Level 2</button>
+                <div class="flex gap-2">
+                    <button id="btn-lvl1" onclick="setDiff(1)" class="flex-1 py-2 md:py-3 bg-cyan-600/90 text-white rounded-xl font-bold border-2 border-cyan-400 font-space text-base md:text-sm transition shadow-[0_0_10px_rgba(0,255,255,0.5)]">Level 1</button>
+                    <button id="btn-lvl2" onclick="setDiff(2)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 2</button>
+                    <button id="btn-lvl3" onclick="setDiff(3)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 3</button>
                 </div>
             </div>
 
@@ -283,7 +287,7 @@
                 pracModeInfo: "獨自稱霸 (單人模式)",
                 timeUp: "時間到！", countReached: "題數達成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
-                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
+                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題",
                 dragHelp: "請將 θ 拖至正確角",
                 lblCor: "答對: ", lblQ: " 題", totalTime: "總答題時間: ", secs: " 秒",
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
@@ -298,7 +302,7 @@
                 pracModeInfo: "Solo Mode (Time & Score)",
                 timeUp: "Time's up!", countReached: "Target reached!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
-                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
+                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next",
                 dragHelp: "Drag θ to the correct angle",
                 lblCor: "Correct: ", lblQ: "", totalTime: "Total Time: ", secs: " s",
                 prog: (c, m) => `Progress: ${c} / ${m}`,
@@ -379,8 +383,11 @@
             const synth3 = new Tone.AMSynth().toDestination(); synth3.volume.value = -18;
             const part3 = new Tone.Sequence((time, note) => { synth3.triggerAttackRelease(note, "16n", time); }, ["G4", null, "D5", null, "C5", "B4", "A4", "G4"], "8n");
 
-            bgmSynths = [synth0, synth1, synth2, synth3];
-            bgmParts = [part0, part1, part2, part3];
+            const synth4 = new Tone.Synth({oscillator: {type: "triangle"}}).toDestination(); synth4.volume.value = -16;
+            const part4 = new Tone.Sequence((time, note) => { synth4.triggerAttackRelease(note, "16n", time); }, ["E4", "B4", "E5", "B4", "G4", "B4", "D5", "B4"], "8n");
+
+            bgmSynths = [synth0, synth1, synth2, synth3, synth4];
+            bgmParts = [part0, part1, part2, part3, part4];
             
             isAudioInit = true;
             document.getElementById('audio-init-overlay').classList.add('hidden');
@@ -400,6 +407,16 @@
             { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }
         ];
 
+        // Level 3 共用對邊的兩個直角三角形 (背對背)
+        const doubleTriples = [
+            { o: 12, a1: 5, h1: 13, a2: 9, h2: 15 },
+            { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 },
+            { o: 12, a1: 9, h1: 15, a2: 16, h2: 20 },
+            { o: 15, a1: 8, h1: 17, a2: 20, h2: 25 },
+            { o: 24, a1: 7, h1: 25, a2: 18, h2: 30 },
+            { o: 8,  a1: 6, h1: 10, a2: 15, h2: 17 }
+        ];
+
         const p1 = createPlayer(1, 'cyan', 'p1');
         const p2 = createPlayer(2, 'purple', 'p2');
         let p1ShipPos = 0; let p2ShipPos = 0;
@@ -415,8 +432,10 @@
             difficulty = lvl;
             const b1 = document.getElementById('btn-lvl1');
             const b2 = document.getElementById('btn-lvl2');
-            b1.className = `flex-1 py-2 md:py-3 ${lvl===1 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-lg transition`;
-            b2.className = `flex-1 py-2 md:py-3 ${lvl===2 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-lg transition`;
+            const b3 = document.getElementById('btn-lvl3');
+            b1.className = `flex-1 py-2 md:py-3 ${lvl===1 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
+            b2.className = `flex-1 py-2 md:py-3 ${lvl===2 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
+            b3.className = `flex-1 py-2 md:py-3 ${lvl===3 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
         }
 
         function setMode(selectedMode) {
@@ -442,7 +461,7 @@
             document.getElementById('gameUI').classList.add('hidden');
             gameState = 'MENU';
             
-            if(menuTrackIdx === -1) menuTrackIdx = Math.floor(Math.random() * 4);
+            if(menuTrackIdx === -1) menuTrackIdx = Math.floor(Math.random() * 5);
             playTrack(menuTrackIdx);
         }
 
@@ -484,7 +503,7 @@
             startTime = Date.now();
             lasers = []; particles = [];
 
-            let battleTrack = Math.floor(Math.random() * 3) + 1;
+            let battleTrack = Math.floor(Math.random() * 4) + 1;
             playTrack(battleTrack);
 
             updateHeaderUI(); 
@@ -525,9 +544,7 @@
                     else workspace.classList.remove('crisis-alert');
 
                     if(left <= 0) {
-                        player.isGenerating = true; 
-                        workspace.classList.remove('crisis-alert');
-                        triggerWrongAnswer(player, true); // true 代表是 timeout
+                        triggerWrongAnswer(player, true);
                     }
                 }
             });
@@ -585,11 +602,39 @@
         }
 
         function triggerWrongAnswer(player, isTimeout = false) {
+            if(mode === 'PRACTICE') {
+                if (isTimeout) {
+                    player.isGenerating = true;
+                    document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
+                    showSoloFeedback(player, false, true); // 時間到直接算錯，出對話框
+                    return;
+                }
+                
+                // 每錯一次扣 20 分
+                player.score = Math.max(0, player.score - 20);
+                updateHeaderUI();
+
+                player.wrongAttempts++;
+                const ws = document.getElementById(`${player.prefix}-workspace`);
+                ws.classList.add('shake-err');
+                setTimeout(() => ws.classList.remove('shake-err'), 300);
+
+                if (player.wrongAttempts >= 2) {
+                    player.isGenerating = true; // 鎖定作答
+                    showSoloFeedback(player, false, false); // 兩次錯誤出對話框
+                } else {
+                    // 第 1 次錯誤，僅震動，重設 Level 1 拖曳方塊讓玩家重試
+                    if (difficulty === 1) {
+                        player.dndState = {};
+                        setTimeout(() => renderLevel1Workspace(player), 300);
+                    }
+                }
+                return;
+            }
+
+            // VS 模式邏輯
             player.isGenerating = true;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-
-            if(mode === 'PRACTICE') { showSoloFeedback(player, false, isTimeout); return; }
-
             player.score = Math.max(0, player.score - 20); 
             player.wrongAttempts++;
             updateHeaderUI();
@@ -598,13 +643,12 @@
             ws.classList.add('shake-err');
             setTimeout(() => ws.classList.remove('shake-err'), 300);
 
-            if(difficulty === 2) {
+            if(difficulty === 2 || difficulty === 3) {
                 setTimeout(() => generateQuestion(player), 400);
             } else {
                 if(player.wrongAttempts >= 2 || (Date.now() - player.qStart) >= (maxPersonalTime*1000)) { 
                     setTimeout(() => generateQuestion(player), 400);
                 } else {
-                    // 保留 dndState 讓拖曳錯誤的答案停在方塊中，不重置
                     setTimeout(() => {
                         renderLevel1Workspace(player);
                         player.isGenerating = false;
@@ -623,8 +667,6 @@
                 player.score += pts;
                 player.corrects++;
                 globalQuestionsAnswered++;
-            } else {
-                player.score = Math.max(0, player.score - 20);
             }
             updateHeaderUI();
 
@@ -644,7 +686,7 @@
                 // 產生正確答案提示字串
                 let correctStr = "";
                 const q = player.currentQ;
-                if(q.isMCQ) {
+                if(q.type >= 4) {
                     correctStr = `${t.correctIs}${q.answer}`;
                 } else {
                     if(q.type === 1) correctStr = `${t.correctIs}${q.correctNum} / ${q.correctDen}`;
@@ -662,7 +704,6 @@
             }
             
             document.body.appendChild(overlay);
-            player.isGenerating = true; 
         }
 
         function nextSoloQ(pid) {
@@ -761,10 +802,63 @@
             const func = funcs[Math.floor(Math.random() * funcs.length)];
             const rot = Math.floor(Math.random() * 360); 
             
-            let q = { math: {o, a, h}, func, type: 0, rotation: rot };
+            let q = { math: {o, a, h}, func, type: 0, rotation: rot, isComposite: false };
             q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
             q.correctDen = func === 'tan' ? a : h;
 
+            // Level 3 邏輯
+            if (difficulty === 3) {
+                const pair = doubleTriples[Math.floor(Math.random() * doubleTriples.length)];
+                const swapLR = Math.random() > 0.5;
+                const a1 = swapLR ? pair.a2 : pair.a1;
+                const h1 = swapLR ? pair.h2 : pair.h1;
+                const a2 = swapLR ? pair.a1 : pair.a2;
+                const h2 = swapLR ? pair.h1 : pair.h2;
+                const comm_o = pair.o;
+
+                q.math = { o: comm_o, a1, h1, a2, h2 };
+                q.isComposite = true;
+
+                q.type = Math.random() > 0.5 ? 6 : 7; // 6: 求比例, 7: 求角度
+                
+                if (q.type === 6) {
+                    q.func = func;
+                    let correctAns;
+                    if(func === 'sin') correctAns = `${comm_o}/${h2}`;
+                    else if(func === 'cos') correctAns = `${a2}/${h2}`;
+                    else correctAns = `${comm_o}/${a2}`;
+
+                    let opts = [correctAns, `${a2}/${h2}`, `${comm_o}/${a2}`, `${h2}/${comm_o}`];
+                    if(func==='cos'){ opts[1] = `${comm_o}/${h2}`; opts[2] = `${a2}/${comm_o}`; }
+                    if(func==='tan'){ opts[1] = `${h2}/${a2}`; opts[3] = `${a2}/${comm_o}`; }
+
+                    q.options = [...new Set(opts)];
+                    while(q.options.length < 4) {
+                        q.options.push(`${Math.floor(Math.random()*15)+1}/${Math.floor(Math.random()*20)+1}`);
+                        q.options = [...new Set(q.options)];
+                    }
+                    q.options.sort(() => Math.random() - 0.5);
+                    q.answer = correctAns;
+                    q.prompt = `${func}(β) = ?`;
+                } else {
+                    let thetaDeg = Math.atan2(comm_o, a2) * 180 / Math.PI;
+                    q.answer = fmt(thetaDeg) + "°";
+                    let opts = [q.answer];
+                    while(opts.length < 4) {
+                        let fakeTheta = thetaDeg + (Math.random() * 40 - 20);
+                        if(fakeTheta < 1 || fakeTheta > 89) fakeTheta = Math.random() * 89 + 1;
+                        let fake = fmt(fakeTheta) + "°";
+                        if(!opts.includes(fake)) opts.push(fake);
+                    }
+                    q.options = opts.sort(() => Math.random() - 0.5);
+                    q.prompt = `β = ?`;
+                }
+                player.currentQ = q;
+                renderLevel3Workspace(player, q);
+                return;
+            }
+
+            // Level 2 邏輯
             if(difficulty === 2) {
                 q.type = Math.floor(Math.random() * 5) + 1; 
             } else {
@@ -772,7 +866,6 @@
             }
 
             if(q.type >= 4) {
-                q.isMCQ = true;
                 if (q.type === 4) {
                     let correctAns = func === 'sin' ? `${o}/${h}` : (func === 'cos' ? `${a}/${h}` : `${o}/${a}`);
                     let opts = [correctAns, `${a}/${h}`, `${o}/${a}`, `${h}/${o}`];
@@ -859,14 +952,12 @@
                     const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
                     const dx = midX - cx; const dy = midY - cy;
                     const len = Math.hypot(dx, dy) || 1;
-                    // 將偏移量從 18 增加到 22，把數字往外推，避免與線條重疊
-                    return {x: midX + (dx/len)*22, y: midY + (dy/len)*22}; 
+                    return {x: midX + (dx/len)*18, y: midY + (dy/len)*18}; 
                 }
                 const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
                 const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
                 const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
 
-                // 移除 font-space 以顯示普通好辨認的無襯線字體，並縮小 5% (18 -> 17)
                 svg += `<text x="${posA.x}" y="${posA.y + 6}" class="tri-text" font-size="17">${a}</text>`;
                 svg += `<text x="${posO.x}" y="${posO.y + 6}" class="tri-text" font-size="17">${o}</text>`;
                 svg += `<text x="${posH.x}" y="${posH.y + 6}" class="tri-text" font-size="17">${h}</text>`;
@@ -887,6 +978,97 @@
             return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
         }
 
+        // Level 3 雙三角形繪製
+        function getCompositeSVG(q, config) {
+            const size = 300;
+            const pad = 60;
+            const totalW = q.math.a1 + q.math.a2;
+            const maxW = size - pad * 2;
+            const maxH = size - pad * 2;
+            const scale = Math.min(maxW / totalW, maxH / q.math.o);
+
+            const drawA1 = q.math.a1 * scale;
+            const drawA2 = q.math.a2 * scale;
+            const drawO = q.math.o * scale;
+
+            const cx = size / 2 + (drawA1 - drawA2) / 2; // 置中平衡
+            const cy = size - pad + 20;
+
+            const pTop = { x: cx, y: cy - drawO };
+            const pBot = { x: cx, y: cy };
+            const pLeft = { x: cx - drawA1, y: cy };
+            const pRight = { x: cx + drawA2, y: cy };
+
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}">`;
+
+            // 畫左右三角形
+            svg += `<polygon points="${pLeft.x},${pLeft.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.02)"/>`;
+            svg += `<polygon points="${pRight.x},${pRight.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.05)"/>`;
+
+            // 共用對邊虛線
+            svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
+
+            // 直角標示
+            svg += `<polyline points="${pBot.x-10},${pBot.y} ${pBot.x-10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
+            svg += `<polyline points="${pBot.x+10},${pBot.y} ${pBot.x+10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
+
+            // 文字標籤工具
+            const textPos = (p1, p2, offset = 18) => {
+                const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2;
+                const dx = p1.y - p2.y; const dy = p2.x - p1.x; // 法向量計算
+                const len = Math.hypot(dx, dy) || 1;
+                return { x: midX + (dx/len)*offset, y: midY + (dy/len)*offset };
+            };
+
+            const posH1 = textPos(pTop, pLeft, 22);
+            svg += `<text x="${posH1.x}" y="${posH1.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.h1}</text>`;
+
+            const posA1 = textPos(pLeft, pBot, 20);
+            svg += `<text x="${posA1.x}" y="${posA1.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.a1}</text>`;
+
+            const posA2 = textPos(pBot, pRight, 20);
+            svg += `<text x="${posA2.x}" y="${posA2.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.a2}</text>`;
+
+            // Beta (β) 角度標示在右側三角形
+            const arcR = 25;
+            const aRad = Math.atan2(drawO, drawA2);
+            const startX = pRight.x - arcR;
+            const startY = pRight.y;
+            const endX = pRight.x - arcR * Math.cos(aRad);
+            const endY = pRight.y - arcR * Math.sin(aRad);
+            
+            svg += `<path d="M ${startX} ${startY} A ${arcR} ${arcR} 0 0 1 ${endX} ${endY}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
+            svg += `<text x="${pRight.x - 38}" y="${pRight.y - 12}" fill="#ffeb3b" font-size="18" font-weight="bold">β</text>`;
+
+            svg += `</svg>`;
+            return { html: svg };
+        }
+
+        function renderLevel3Workspace(player, q) {
+            document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${q.prompt}</span>`;
+            
+            const svgData = getCompositeSVG(q, { colorClass: `${player.prefix}-color` });
+            document.getElementById(`${player.prefix}-svg-container`).innerHTML = svgData.html;
+
+            const inter = document.getElementById(`${player.prefix}-interaction`);
+            inter.className = "grid grid-cols-2 gap-1 md:gap-2 flex-1 w-full max-h-[100px]"; inter.innerHTML = '';
+
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
+                
+                if(opt.includes('/')) {
+                    const [n, d] = opt.split('/');
+                    if(!isNaN(n) && !isNaN(d)) {
+                        btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
+                    } else { btn.innerHTML = opt; }
+                } else { btn.innerHTML = opt; }
+                
+                btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                inter.appendChild(btn);
+            });
+        }
+
         function renderLevel2Workspace(player, q) {
             const promptText = q.type === 4 ? `${q.func}(θ) = ?` : q.promptType5;
             document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${promptText}</span>`;
@@ -899,11 +1081,13 @@
 
             q.options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px]`;
+                btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
                 
                 if(opt.includes('/')) {
                     const [n, d] = opt.split('/');
-                    btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
+                    if(!isNaN(n) && !isNaN(d)) {
+                        btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
+                    } else { btn.innerHTML = opt; }
                 } else { btn.innerHTML = opt; }
                 
                 btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
