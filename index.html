@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>宇宙三角防衛戰 - 終極對決</title>
+    <title>宇宙三角防衛戰 - Trigowar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
@@ -61,7 +61,6 @@
             min-width: 40px; min-height: 35px; color: rgba(255,255,255,0.5); transition: all 0.2s;
         }
         .drop-zone.filled { border-style: solid; background: rgba(255,255,255,0.2); color: #fff; border-color: #e2e8f0; }
-        .drop-zone.flash-correct { border-color: #4ade80 !important; background: rgba(74,222,128,0.4) !important; color: #fff; }
 
         .ghost-drag { 
             position: fixed; pointer-events: none; z-index: 9999;
@@ -78,32 +77,47 @@
         .p1-color { stroke: #0ff; } .p2-color { stroke: #c084fc; }
         .tri-text { fill: #fff; font-weight: bold; text-anchor: middle; alignment-baseline: middle; }
 
-        /* 結算動畫 */
-        @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            70% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); opacity: 1; }
-        }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
         /* =========================================
-           練習模式專屬 CSS 排版 (置中且不對戰)
+           獨自稱霸 (單人) 模式專屬 CSS 排版
         ========================================= */
         body.practice-active #p2-area,
         body.practice-active #battle-spacer,
-        body.practice-active #top-bar-scores {
+        body.practice-active #top-bar-scores .health-bar-container,
+        body.practice-active #lbl-p2,
+        body.practice-active #p2-score {
             display: none !important;
+        }
+        body.practice-active #top-bar-scores {
+            justify-content: center;
         }
         body.practice-active #p1-area {
             flex: none !important;
             width: 100% !important;
             max-width: 600px !important;
-            margin: 0 auto !important;
+            margin: 0 auto !important; /* X 軸置中 */
             justify-content: center !important;
+            align-items: center !important; /* 確保內容在容器中心 */
         }
         body.practice-active #p1-workspace {
-            max-height: 600px !important;
-            transform: scale(1.05);
+            transform: translateY(-5vh); /* 稍微往上移避免壓底 */
+            transform-origin: center center;
+            max-height: none !important;
+            height: auto;
+            border-width: 2px;
+            width: 100%;
+        }
+        body.practice-active #timer-bar-p1 {
+            height: 10px !important;
+        }
+        body.practice-active #p1-svg-container {
+            min-height: 220px;
+        }
+        body.practice-active #p1-svg-container svg {
+            transform: scale(1); /* 恢復為正常 100% 倍率 */
+            overflow: visible; 
         }
     </style>
 </head>
@@ -151,13 +165,13 @@
             </div>
         </div>
 
-        <div class="battle-area flex-1 flex flex-row px-2 pb-4 pt-2 gap-2 md:gap-8 overflow-hidden pointer-events-none">
+        <div class="battle-area flex-1 flex flex-row px-2 pb-[10vh] md:pb-[15vh] pt-2 gap-2 md:gap-8 overflow-hidden pointer-events-none">
             <!-- P1 區域 -->
             <div id="p1-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
-                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#0ff]">
+                <div class="w-full h-[6px] md:h-[10px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#0ff]">
                     <div id="timer-bar-p1" class="h-full bg-cyan-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all relative">
+                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[450px] transition-all relative">
                     <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
                     <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p1-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
@@ -168,10 +182,10 @@
 
             <!-- P2 區域 -->
             <div id="p2-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
-                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#c084fc]">
+                <div class="w-full h-[6px] md:h-[10px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#c084fc]">
                     <div id="timer-bar-p2" class="h-full bg-purple-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all relative">
+                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[450px] transition-all relative">
                     <div id="p2-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
                     <div id="p2-prompt" class="text-center font-bold text-purple-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p2-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
@@ -192,7 +206,7 @@
         </h2>
         
         <div class="w-full max-w-md bg-gray-900/80 border border-cyan-800/50 rounded-3xl p-5 md:p-6 shadow-[0_0_30px_rgba(0,255,255,0.2)] backdrop-blur-xl relative z-10">
-            <!-- 語言切換 Language Toggle -->
+            <!-- 語言切換 -->
             <div class="flex justify-center gap-4 mb-4">
                 <button id="lang-zh" onclick="setLang('zh')" class="px-4 py-1 rounded-full bg-blue-600 text-white font-bold text-sm border-2 border-blue-400 transition">中文</button>
                 <button id="lang-en" onclick="setLang('en')" class="px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition">English</button>
@@ -209,9 +223,9 @@
             <div class="mb-5">
                 <label class="block text-purple-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">GAME MODE</label>
                 <div class="flex gap-2 mb-3">
-                    <button id="btn-mode-count" onclick="setMode('COUNT')" class="flex-1 py-2 md:py-3 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base">爭分奪秒</button>
-                    <button id="btn-mode-time" onclick="setMode('TIME')" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">霸王餐</button>
-                    <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">練習模式</button>
+                    <button id="btn-mode-count" onclick="setMode('COUNT')" class="flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm">爭分奪秒</button>
+                    <button id="btn-mode-time" onclick="setMode('TIME')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm">霸王餐</button>
+                    <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm">獨自稱霸</button>
                 </div>
                 
                 <div id="setting-count" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700">
@@ -243,9 +257,10 @@
                 <div class="text-right">
                     <div class="text-white font-space text-3xl md:text-4xl font-bold" id="res-score1">0</div>
                     <div class="text-gray-400 text-xs md:text-sm"><span id="lbl-cor1">答對: </span><span id="res-cor1">0</span><span id="lbl-q1"> 題</span></div>
+                    <div id="res-time-box1" class="text-yellow-400 text-xs md:text-sm hidden mt-1">總答題時間: <span id="res-time1">0</span> 秒</div>
                 </div>
             </div>
-            <div class="flex justify-between items-center p-3 md:p-4 bg-gray-900 rounded-2xl border border-purple-800 relative z-10">
+            <div id="p2-res-box" class="flex justify-between items-center p-3 md:p-4 bg-gray-900 rounded-2xl border border-purple-800 relative z-10">
                 <div id="res-p2" class="text-purple-400 font-bold text-lg md:text-xl">Player 2 (紫)</div>
                 <div class="text-right">
                     <div class="text-white font-space text-3xl md:text-4xl font-bold" id="res-score2">0</div>
@@ -258,36 +273,37 @@
 
     <!-- 腳本 -->
     <script>
-        // ================== 多國語言設定 ==================
         let currentLang = 'zh';
         const i18n = {
             zh: {
-                modeCount: "爭分奪秒", modeTime: "霸王餐", modePrac: "練習模式",
+                modeCount: "爭分奪秒", modeTime: "霸王餐", modePrac: "獨自稱霸",
                 setCount: "設定題數:", setTime: "設定秒數:", setPersonal: "專屬作答秒數:",
                 btnStart: "開始作戰 / START", btnEnd: "結束遊戲", btnMenu: "返回主畫面",
                 p1Blue: "Player 1", p2Purple: "Player 2",
-                pracModeInfo: "練習模式 (不計分)",
+                pracModeInfo: "獨自稱霸 (單人模式)",
                 timeUp: "時間到！", countReached: "題數達成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
-                pracCorrect: "正確！", pracWrong: "時間到或錯誤！", btnNext: "下一題", btnRetry: "再試一次",
+                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
                 dragHelp: "請將 θ 拖至正確角",
-                lblCor: "答對: ", lblQ: " 題",
+                lblCor: "答對: ", lblQ: " 題", totalTime: "總答題時間: ", secs: " 秒",
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
-                timeLeft: (l) => `倒數計時: ${l} 秒`
+                timeLeft: (l) => `倒數計時: ${l} 秒`,
+                correctIs: "正確答案: ", hintTheta: "提示: θ 的對邊為 "
             },
             en: {
-                modeCount: "Questions", modeTime: "Survival", modePrac: "Practice",
+                modeCount: "Questions", modeTime: "Survival", modePrac: "Solo Mode",
                 setCount: "Target Qs:", setTime: "Total Time:", setPersonal: "Time per Q:",
                 btnStart: "START MISSION", btnEnd: "End Game", btnMenu: "Main Menu",
                 p1Blue: "Player 1", p2Purple: "Player 2",
-                pracModeInfo: "Practice Mode (No Score)",
+                pracModeInfo: "Solo Mode (Time & Score)",
                 timeUp: "Time's up!", countReached: "Target reached!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
-                pracCorrect: "Correct!", pracWrong: "Time out or Wrong!", btnNext: "Next", btnRetry: "Retry",
+                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
                 dragHelp: "Drag θ to the correct angle",
-                lblCor: "Correct: ", lblQ: "",
+                lblCor: "Correct: ", lblQ: "", totalTime: "Total Time: ", secs: " s",
                 prog: (c, m) => `Progress: ${c} / ${m}`,
-                timeLeft: (l) => `Time Left: ${l} s`
+                timeLeft: (l) => `Time Left: ${l} s`,
+                correctIs: "Correct Answer: ", hintTheta: "Hint: Opp of θ is "
             }
         };
 
@@ -317,12 +333,17 @@
             document.getElementById('lbl-q2').innerText = t.lblQ;
             document.getElementById('btn-back-menu').innerText = t.btnMenu;
             
+            const timeBoxText = document.getElementById('res-time-box1');
+            if (timeBoxText) {
+                timeBoxText.childNodes[0].nodeValue = t.totalTime;
+                timeBoxText.childNodes[2].nodeValue = t.secs;
+            }
+            
             if (gameState === 'PLAYING' && mode === 'PRACTICE') {
                 document.getElementById('gameInfoText').innerText = t.pracModeInfo;
             }
         }
 
-        // ================== 狀態變數 ==================
         let difficulty = 1; 
         let mode = 'COUNT'; 
         let maxCount = 10;
@@ -333,6 +354,7 @@
         let startTime = 0;
         let mainTimer = null;
         let globalQuestionsAnswered = 0;
+        let soloTotalTimeMs = 0;
 
         let isAudioInit = false;
         let bgmSynths = [];
@@ -340,7 +362,6 @@
         let currentTrackIdx = -1;
         let menuTrackIdx = -1;
         
-        // 音效系統 Tone.js
         async function initAudioAndShowMenu() {
             if(isAudioInit) return;
             await Tone.start();
@@ -390,7 +411,6 @@
             };
         }
 
-        // ================== 選單切換 ==================
         function setDiff(lvl) {
             difficulty = lvl;
             const b1 = document.getElementById('btn-lvl1');
@@ -407,10 +427,10 @@
             const sC = document.getElementById('setting-count');
             const sT = document.getElementById('setting-time');
             
-            [bC, bT, bP].forEach(b => b.className = "flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base");
+            [bC, bT, bP].forEach(b => b.className = "flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm");
             sC.classList.add('hidden'); sT.classList.add('hidden');
 
-            const activeClass = "flex-1 py-2 md:py-3 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base";
+            const activeClass = "flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm";
             if(mode === 'COUNT') { bC.className = activeClass; sC.classList.remove('hidden'); } 
             else if (mode === 'TIME') { bT.className = activeClass; sT.classList.remove('hidden'); } 
             else { bP.className = activeClass; }
@@ -445,11 +465,9 @@
             }, 1000);
         }
 
-        // ================== 遊戲主循環 ==================
         function actualGameStart() {
             document.getElementById('gameUI').classList.remove('hidden');
             
-            // 根據是否為練習模式來套用 CSS 排版類別
             if(mode === 'PRACTICE') {
                 document.body.classList.add('practice-active');
                 document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
@@ -461,6 +479,7 @@
             p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0;
             p1ShipPos = 0; p2ShipPos = 0;
             globalQuestionsAnswered = 0;
+            soloTotalTimeMs = 0;
             gameState = 'PLAYING';
             startTime = Date.now();
             lasers = []; particles = [];
@@ -494,7 +513,7 @@
             }
 
             [p1, p2].forEach(player => {
-                if(mode === 'PRACTICE' && player.id === 2) return; // 練習模式忽略 Player 2
+                if(mode === 'PRACTICE' && player.id === 2) return; 
                 
                 const workspace = document.getElementById(`${player.prefix}-workspace`);
                 if(!player.isGenerating && player.qStart > 0) {
@@ -508,13 +527,12 @@
                     if(left <= 0) {
                         player.isGenerating = true; 
                         workspace.classList.remove('crisis-alert');
-                        triggerWrongAnswer(player);
+                        triggerWrongAnswer(player, true); // true 代表是 timeout
                     }
                 }
             });
         }
 
-        // ================== 分數與健康度 ==================
         function updateHeaderUI() {
             document.getElementById('p1-score').innerText = p1.score;
             document.getElementById('p2-score').innerText = p2.score;
@@ -536,12 +554,11 @@
             }
         }
 
-        // ================== 答案觸發與反饋 ==================
         function triggerCorrectAnswer(player) {
             player.isGenerating = true;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
 
-            if(mode === 'PRACTICE') { showPracticeFeedback(player, true); return; }
+            if(mode === 'PRACTICE') { showSoloFeedback(player, true); return; }
 
             const timeTaken = Math.floor((Date.now() - player.qStart) / 1000);
             const points = Math.max(10, 120 - timeTaken);
@@ -567,11 +584,11 @@
             setTimeout(() => { ws.classList.remove('flash-correct'); generateQuestion(player); }, 600);
         }
 
-        function triggerWrongAnswer(player) {
+        function triggerWrongAnswer(player, isTimeout = false) {
             player.isGenerating = true;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
 
-            if(mode === 'PRACTICE') { showPracticeFeedback(player, false); return; }
+            if(mode === 'PRACTICE') { showSoloFeedback(player, false, isTimeout); return; }
 
             player.score = Math.max(0, player.score - 20); 
             player.wrongAttempts++;
@@ -587,7 +604,7 @@
                 if(player.wrongAttempts >= 2 || (Date.now() - player.qStart) >= (maxPersonalTime*1000)) { 
                     setTimeout(() => generateQuestion(player), 400);
                 } else {
-                    player.dndState = {};
+                    // 保留 dndState 讓拖曳錯誤的答案停在方塊中，不重置
                     setTimeout(() => {
                         renderLevel1Workspace(player);
                         player.isGenerating = false;
@@ -596,7 +613,72 @@
             }
         }
 
-        // ================== 動畫與結束邏輯 ==================
+        function showSoloFeedback(player, isCorrect, isTimeout = false) {
+            let timeTaken = Date.now() - player.qStart;
+            if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000;
+            soloTotalTimeMs += timeTaken;
+
+            if (isCorrect) {
+                const pts = Math.max(10, 120 - Math.floor(timeTaken / 1000));
+                player.score += pts;
+                player.corrects++;
+                globalQuestionsAnswered++;
+            } else {
+                player.score = Math.max(0, player.score - 20);
+            }
+            updateHeaderUI();
+
+            const overlay = document.createElement('div');
+            const t = i18n[currentLang];
+            overlay.id = `practice-overlay-${player.prefix}`;
+            
+            // 固定在左側垂直置中
+            overlay.className = "fixed top-1/2 left-2 md:left-[5vw] transform -translate-y-1/2 bg-gray-900/95 p-4 md:p-6 rounded-2xl border-2 shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col items-center justify-center min-w-[200px] md:min-w-[300px] pointer-events-auto backdrop-blur-md";
+            
+            if(isCorrect) {
+                overlay.style.borderColor = "#4ade80";
+                overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space drop-shadow-[0_0_10px_#4ade80]">${t.pracCorrect}</div><button onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:bg-green-500 transition">▶ ${t.btnNext}</button>`;
+            } else {
+                overlay.style.borderColor = "#ef4444";
+                
+                // 產生正確答案提示字串
+                let correctStr = "";
+                const q = player.currentQ;
+                if(q.isMCQ) {
+                    correctStr = `${t.correctIs}${q.answer}`;
+                } else {
+                    if(q.type === 1) correctStr = `${t.correctIs}${q.correctNum} / ${q.correctDen}`;
+                    else if(q.type === 2) correctStr = `${t.correctIs}${q.func}`;
+                    else if(q.type === 3) correctStr = `${t.hintTheta}${q.math.o}`;
+                }
+
+                let titleStr = isTimeout ? t.pracTimeout : t.pracWrong;
+
+                overlay.innerHTML = `
+                    <div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${titleStr}</div>
+                    <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full">${correctStr}</div>
+                    <button onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
+                `;
+            }
+            
+            document.body.appendChild(overlay);
+            player.isGenerating = true; 
+        }
+
+        function nextSoloQ(pid) {
+            let player = pid === 1 ? p1 : p2;
+            const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
+            if(overlay) overlay.remove();
+            
+            generateQuestion(player);
+        }
+
+        function fmt(num) {
+            if(typeof num !== 'number') return num; 
+            if(Number.isInteger(num)) return num;
+            return Number(num.toPrecision(3)); 
+        }
+
         function animateValue(obj, start, end, duration) {
             let startTimestamp = null;
             const step = (timestamp) => {
@@ -616,66 +698,44 @@
             gameState = 'END';
             clearInterval(mainTimer);
             document.getElementById('gameUI').classList.add('hidden');
+            
+            // 清除所有的對話框
+            document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => el.remove());
+
             const endScr = document.getElementById('endScreen');
             endScr.classList.remove('hidden');
             
+            if(currentTrackIdx !== -1) bgmParts[currentTrackIdx].stop();
             if(menuTrackIdx !== -1) playTrack(menuTrackIdx);
+
+            if(mode === 'PRACTICE') {
+                document.getElementById('p2-res-box').classList.add('hidden');
+                document.getElementById('res-time-box1').classList.remove('hidden');
+                document.getElementById('res-time1').innerText = (soloTotalTimeMs / 1000).toFixed(1);
+            } else {
+                document.getElementById('p2-res-box').classList.remove('hidden');
+                document.getElementById('res-time-box1').classList.add('hidden');
+            }
 
             const t = i18n[currentLang];
             let finalReason = reason;
-            if(!reason) {
-                if(p1.score > p2.score) finalReason = t.winP1;
+
+            if (!reason) {
+                if (p1.score > p2.score) finalReason = t.winP1;
                 else if (p2.score > p1.score) finalReason = t.winP2;
                 else finalReason = t.draw;
+                if (mode === 'PRACTICE') finalReason = "Mission Complete";
             }
             document.getElementById('endTitle').innerText = finalReason;
-            
+
             animateValue(document.getElementById('res-score1'), 0, p1.score, 3000);
-            animateValue(document.getElementById('res-score2'), 0, p2.score, 3000);
-            document.getElementById('res-cor1').innerText = p1.corrects;
-            document.getElementById('res-cor2').innerText = p2.corrects;
-        }
-
-        // ================== 練習模式反饋 ==================
-        function showPracticeFeedback(player, isCorrect) {
-            const workspace = document.getElementById(`${player.prefix}-workspace`);
-            const overlay = document.createElement('div');
-            const t = i18n[currentLang];
-            overlay.id = `practice-overlay-${player.prefix}`;
-            overlay.className = "absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm pointer-events-auto";
-            if(isCorrect) {
-                overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space">${t.pracCorrect}</div><button onclick="nextPracticeQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:scale-105 transition">▶ ${t.btnNext}</button>`;
-            } else {
-                overlay.innerHTML = `<div class="text-red-400 text-2xl md:text-3xl font-bold mb-4 font-space">${t.pracWrong}</div><button onclick="retryPracticeQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:scale-105 transition">↺ ${t.btnRetry}</button>`;
+            animateValue(document.getElementById('res-cor1'), 0, p1.corrects, 2000);
+            if(mode !== 'PRACTICE') {
+                animateValue(document.getElementById('res-score2'), 0, p2.score, 3000);
+                animateValue(document.getElementById('res-cor2'), 0, p2.corrects, 2000);
             }
-            workspace.style.position = 'relative';
-            workspace.appendChild(overlay);
         }
 
-        function nextPracticeQ(pid) {
-            let player = pid === 1 ? p1 : p2;
-            const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
-            if(overlay) overlay.remove();
-            generateQuestion(player);
-        }
-
-        function retryPracticeQ(pid) {
-            let player = pid === 1 ? p1 : p2;
-            const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
-            if(overlay) overlay.remove();
-            
-            player.dndState = {}; player.isGenerating = false; player.qStart = Date.now();
-            if(difficulty === 2) renderLevel2Workspace(player, player.currentQ);
-            else renderLevel1Workspace(player);
-        }
-
-        function fmt(num) {
-            if(typeof num !== 'number') return num; 
-            if(Number.isInteger(num)) return num;
-            return Number(num.toPrecision(3)); 
-        }
-
-        // ================== 題目生成 ==================
         function generateQuestion(player) {
             player.qStart = Date.now();
             player.isGenerating = false;
@@ -750,10 +810,9 @@
             }
         }
 
-        // ================== 渲染 SVG ==================
         function getSVG(o, a, h, config) {
-            const size = 250; 
-            const pad = 60;   
+            const size = 300; 
+            const pad = 80;   
             
             let mockO = typeof o === 'string' ? 5 : o;
             let mockA = typeof a === 'string' ? 5 : a;
@@ -800,15 +859,17 @@
                     const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
                     const dx = midX - cx; const dy = midY - cy;
                     const len = Math.hypot(dx, dy) || 1;
-                    return {x: midX + (dx/len)*18, y: midY + (dy/len)*18}; 
+                    // 將偏移量從 18 增加到 22，把數字往外推，避免與線條重疊
+                    return {x: midX + (dx/len)*22, y: midY + (dy/len)*22}; 
                 }
                 const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
                 const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
                 const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
 
-                svg += `<text x="${posA.x}" y="${posA.y + 6}" class="tri-text" font-size="16">${a}</text>`;
-                svg += `<text x="${posO.x}" y="${posO.y + 6}" class="tri-text" font-size="16">${o}</text>`;
-                svg += `<text x="${posH.x}" y="${posH.y + 6}" class="tri-text" font-size="16">${h}</text>`;
+                // 移除 font-space 以顯示普通好辨認的無襯線字體，並縮小 5% (18 -> 17)
+                svg += `<text x="${posA.x}" y="${posA.y + 6}" class="tri-text" font-size="17">${a}</text>`;
+                svg += `<text x="${posO.x}" y="${posO.y + 6}" class="tri-text" font-size="17">${o}</text>`;
+                svg += `<text x="${posH.x}" y="${posH.y + 6}" class="tri-text" font-size="17">${h}</text>`;
             }
 
             if(config.showTheta) {
@@ -819,14 +880,13 @@
                     return {x: ra.x - (dx/len)*38, y: ra.y - (dy/len)*38}; 
                 }
                 let tPos = config.thetaPos === 'bottom' ? getThetaPos(pBotLeftX, pBotLeftY) : getThetaPos(pTopRightX, pTopRightY);
-                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" class="tri-text" fill="#ffeb3b" font-size="18">θ</text>`;
+                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" class="tri-text" fill="#ffeb3b" font-size="20">θ</text>`;
             }
 
             svg += `</svg>`;
             return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
         }
 
-        // ================== 工作區渲染 ==================
         function renderLevel2Workspace(player, q) {
             const promptText = q.type === 4 ? `${q.func}(θ) = ?` : q.promptType5;
             document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${promptText}</span>`;
@@ -846,7 +906,7 @@
                     btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
                 } else { btn.innerHTML = opt; }
                 
-                btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player); };
+                btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
                 inter.appendChild(btn);
             });
         }
@@ -875,7 +935,7 @@
                 });
 
             } else if (q.type === 2) { 
-                const dzFunc = `<div class="drop-zone w-12 h-8 md:w-16 md:h-10 mx-1 font-space text-base md:text-lg bg-gray-800" data-target="func" data-pid="${player.id}">?</div>`;
+                const dzFunc = `<div class="drop-zone w-12 h-8 md:w-16 md:h-10 mx-1 font-space text-base md:text-lg bg-gray-800 ${player.dndState.func ? 'filled' : ''}" data-target="func" data-pid="${player.id}">${player.dndState.func || '?'}</div>`;
                 promptEl.innerHTML = `<div class="flex items-center text-lg md:text-2xl font-space">${dzFunc} (θ) = <div class="inline-flex flex-col items-center leading-none mx-2 text-base md:text-xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${q.correctNum}</span><span class="px-2 pt-[3px]">${q.correctDen}</span></div></div>`;
 
                 svgHtml = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
@@ -883,7 +943,8 @@
 
                 interEl.innerHTML = '';
                 ['sin', 'cos', 'tan'].forEach(val => {
-                    interEl.innerHTML += `<div class="draggable w-14 h-8 md:w-16 md:h-10 text-sm md:text-lg font-space bg-gray-700" data-val="${val}" data-pid="${player.id}">${val}</div>`;
+                    const isHidden = (player.dndState.func == val) ? 'opacity-0 pointer-events-none' : '';
+                    interEl.innerHTML += `<div class="draggable w-14 h-8 md:w-16 md:h-10 text-sm md:text-lg font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
                 });
 
             } else if (q.type === 3) { 
@@ -901,16 +962,16 @@
                     const blX = offsetX + svgData.coords.bl.x * scale; const blY = offsetY + svgData.coords.bl.y * scale;
                     const trX = offsetX + svgData.coords.tr.x * scale; const trY = offsetY + svgData.coords.tr.y * scale;
 
-                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12" style="left:${blX-20}px; top:${blY-20}px" data-target="angle_bottom" data-pid="${player.id}"></div>`;
-                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12" style="left:${trX-20}px; top:${trY-20}px" data-target="angle_top" data-pid="${player.id}"></div>`;
+                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12 ${player.dndState.angle === 'angle_bottom' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${blX-20}px; top:${blY-20}px" data-target="angle_bottom" data-pid="${player.id}">${player.dndState.angle === 'angle_bottom' ? 'θ' : ''}</div>`;
+                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12 ${player.dndState.angle === 'angle_top' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${trX-20}px; top:${trY-20}px" data-target="angle_top" data-pid="${player.id}">${player.dndState.angle === 'angle_top' ? 'θ' : ''}</div>`;
                 }, 10);
 
-                interEl.innerHTML = `<div class="draggable w-10 h-10 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)]" data-val="theta" data-pid="${player.id}">θ</div>`;
+                const isHidden = player.dndState.angle ? 'opacity-0 pointer-events-none' : '';
+                interEl.innerHTML = `<div class="draggable w-10 h-10 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)] ${isHidden}" data-val="theta" data-pid="${player.id}">θ</div>`;
             }
             setTimeout(() => attachDragListeners(player), 50);
         }
 
-        // ================== 拖曳系統 ==================
         let activeDrag = null; let ghostEl = null;
 
         function attachDragListeners(player) {
@@ -965,22 +1026,25 @@
                 if (player.dndState.num && player.dndState.den) {
                     checkTriggered = true;
                     if (player.dndState.num == q.correctNum && player.dndState.den == q.correctDen) triggerCorrectAnswer(player);
-                    else triggerWrongAnswer(player);
+                    else triggerWrongAnswer(player, false);
                 }
             } 
             else if (q.type === 2) { 
+                player.dndState.func = val;
+                renderLevel1Workspace(player);
                 checkTriggered = true;
-                if (val === q.func) triggerCorrectAnswer(player); else triggerWrongAnswer(player);
+                if (val === q.func) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
             }
             else if (q.type === 3) { 
+                player.dndState.angle = target;
+                renderLevel1Workspace(player);
                 checkTriggered = true;
-                if (target === 'angle_bottom') triggerCorrectAnswer(player); else triggerWrongAnswer(player);
+                if (target === 'angle_bottom') triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
             }
 
             if(!checkTriggered) renderLevel1Workspace(player); 
         }
 
-        // ================== Canvas 繪圖引擎 ==================
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         let canvasW, canvasH, p1Ships = [], p2Ships = [], lasers = [], particles = [], stars = [];
 
@@ -1016,7 +1080,6 @@
 
             if(gameState !== 'PLAYING') { requestAnimationFrame(renderCanvas); return; }
 
-            // 在練習模式下不繪製對戰專用的血量連接線與雙方飛船
             if (mode !== 'PRACTICE') {
                 ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath();
                 ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
