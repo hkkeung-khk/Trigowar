@@ -77,6 +77,34 @@
         .svg-tri polygon { fill: rgba(255,255,255,0.05); stroke-width: 2; stroke-linejoin: round; }
         .p1-color { stroke: #0ff; } .p2-color { stroke: #c084fc; }
         .tri-text { fill: #fff; font-weight: bold; text-anchor: middle; alignment-baseline: middle; }
+
+        /* 結算動畫 */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* =========================================
+           練習模式專屬 CSS 排版 (置中且不對戰)
+        ========================================= */
+        body.practice-active #p2-area,
+        body.practice-active #battle-spacer,
+        body.practice-active #top-bar-scores {
+            display: none !important;
+        }
+        body.practice-active #p1-area {
+            flex: none !important;
+            width: 100% !important;
+            max-width: 600px !important;
+            margin: 0 auto !important;
+            justify-content: center !important;
+        }
+        body.practice-active #p1-workspace {
+            max-height: 600px !important;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -87,7 +115,7 @@
     <div id="audio-init-overlay" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center text-white cursor-pointer transition-opacity" onclick="initAudioAndShowMenu()">
         <h1 class="text-4xl md:text-6xl font-space font-bold animate-breathe mb-4 text-cyan-400">宇宙三角防衛戰</h1>
         <h2 class="text-2xl md:text-3xl font-space font-bold animate-breathe mb-8 text-cyan-200">Trigowar</h2>
-        <div class="text-xl md:text-2xl animate-pulse">點擊畫面啟動音效系統 / Click to Enter</div>
+        <div class="text-xl md:text-2xl animate-pulse">點擊畫面啟動系統 / Click to Enter</div>
     </div>
 
     <!-- 開局倒數遮罩 -->
@@ -99,14 +127,14 @@
     <div id="gameUI" class="ui-layer hidden">
         <div class="top-bar pointer-events-auto bg-black/60 backdrop-blur-sm border-b border-gray-800 p-2 md:p-4 flex flex-col gap-2 shrink-0">
             <div class="flex justify-between items-center px-1">
-                <button id="btn-end" onclick="forceEndGame()" class="px-3 py-1 bg-red-600/80 text-white rounded text-sm font-bold hover:bg-red-500 transition">結束遊戲</button>
-                <div id="gameInfoText" class="text-yellow-400 font-bold font-space text-sm md:text-lg">爭分奪秒: 0 / 10 題</div>
+                <button id="btn-end" onclick="forceEndGame()" class="px-3 py-1 bg-red-600/80 text-white rounded text-sm font-bold hover:bg-red-500 transition shadow-[0_0_10px_rgba(239,68,68,0.5)]">結束遊戲</button>
+                <div id="gameInfoText" class="text-yellow-400 font-bold font-space text-sm md:text-lg tracking-widest drop-shadow-[0_0_5px_#facc15]">進度載入中...</div>
                 <div class="w-[80px]"></div>
             </div>
             
-            <div class="flex items-center gap-2 md:gap-4 px-1">
+            <div id="top-bar-scores" class="flex items-center gap-2 md:gap-4 px-1">
                 <div class="flex-col text-left w-16 md:w-24">
-                    <div id="lbl-p1" class="text-cyan-400 font-bold text-[10px] md:text-xs">P1 (藍)</div>
+                    <div id="lbl-p1" class="text-cyan-400 font-bold text-[10px] md:text-xs">Player 1</div>
                     <div id="p1-score" class="text-white font-space font-bold text-base md:text-lg leading-none">0</div>
                 </div>
                 
@@ -117,7 +145,7 @@
                 </div>
 
                 <div class="flex-col text-right w-16 md:w-24">
-                    <div id="lbl-p2" class="text-purple-400 font-bold text-[10px] md:text-xs">P2 (紫)</div>
+                    <div id="lbl-p2" class="text-purple-400 font-bold text-[10px] md:text-xs">Player 2</div>
                     <div id="p2-score" class="text-white font-space font-bold text-base md:text-lg leading-none">0</div>
                 </div>
             </div>
@@ -125,25 +153,25 @@
 
         <div class="battle-area flex-1 flex flex-row px-2 pb-4 pt-2 gap-2 md:gap-8 overflow-hidden pointer-events-none">
             <!-- P1 區域 -->
-            <div class="flex-1 pointer-events-auto flex flex-col justify-end relative">
-                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative">
+            <div id="p1-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
+                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#0ff]">
                     <div id="timer-bar-p1" class="h-full bg-cyan-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all">
+                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all relative">
                     <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
                     <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p1-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
                 </div>
             </div>
 
-            <div class="w-8 md:w-20 shrink-0"></div>
+            <div id="battle-spacer" class="w-8 md:w-20 shrink-0"></div>
 
             <!-- P2 區域 -->
-            <div class="flex-1 pointer-events-auto flex flex-col justify-end relative">
-                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative">
+            <div id="p2-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
+                <div class="w-full h-[6px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#c084fc]">
                     <div id="timer-bar-p2" class="h-full bg-purple-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all">
+                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[500px] transition-all relative">
                     <div id="p2-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
                     <div id="p2-prompt" class="text-center font-bold text-purple-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p2-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
@@ -152,6 +180,7 @@
         </div>
     </div>
 
+    <!-- 首頁選單 -->
     <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-center px-4 bg-black/80 backdrop-blur-md hidden pointer-events-auto">
         <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, #000 100%);"></div>
         
@@ -207,8 +236,8 @@
 
     <!-- 結算畫面 -->
     <div id="endScreen" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center px-4 hidden backdrop-blur-lg pointer-events-auto">
-        <h1 id="endTitle" class="text-4xl md:text-5xl font-black text-white mb-6 font-space text-center drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] animate-breathe">GAME OVER</h1>
-        <div class="w-full max-w-lg bg-gray-800 border border-gray-600 rounded-3xl p-4 md:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden">
+        <h1 id="endTitle" class="text-4xl md:text-5xl font-black text-white mb-6 font-space text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-breathe">GAME OVER</h1>
+        <div class="pop-in-anim w-full max-w-lg bg-gray-800 border border-gray-600 rounded-3xl p-4 md:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden">
             <div class="flex justify-between items-center p-3 md:p-4 bg-gray-900 rounded-2xl border border-cyan-800 relative z-10">
                 <div id="res-p1" class="text-cyan-400 font-bold text-lg md:text-xl">Player 1 (藍)</div>
                 <div class="text-right">
@@ -227,18 +256,20 @@
         <button id="btn-back-menu" onclick="showMenu()" class="mt-8 px-6 py-2 md:px-8 md:py-3 bg-white text-black rounded-full text-lg md:text-xl font-bold hover:scale-105 transition shadow-[0_0_15px_rgba(255,255,255,0.5)]">返回主畫面</button>
     </div>
 
+    <!-- 腳本 -->
     <script>
+        // ================== 多國語言設定 ==================
         let currentLang = 'zh';
         const i18n = {
             zh: {
                 modeCount: "爭分奪秒", modeTime: "霸王餐", modePrac: "練習模式",
                 setCount: "設定題數:", setTime: "設定秒數:", setPersonal: "專屬作答秒數:",
                 btnStart: "開始作戰 / START", btnEnd: "結束遊戲", btnMenu: "返回主畫面",
-                p1Blue: "P1 (藍)", p2Purple: "P2 (紫)",
+                p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "練習模式 (不計分)",
                 timeUp: "時間到！", countReached: "題數達成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
-                pracCorrect: "正確！", pracWrong: "錯誤！", btnNext: "下一題", btnRetry: "再試一次",
+                pracCorrect: "正確！", pracWrong: "時間到或錯誤！", btnNext: "下一題", btnRetry: "再試一次",
                 dragHelp: "請將 θ 拖至正確角",
                 lblCor: "答對: ", lblQ: " 題",
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
@@ -248,11 +279,11 @@
                 modeCount: "Questions", modeTime: "Survival", modePrac: "Practice",
                 setCount: "Target Qs:", setTime: "Total Time:", setPersonal: "Time per Q:",
                 btnStart: "START MISSION", btnEnd: "End Game", btnMenu: "Main Menu",
-                p1Blue: "P1 (Blue)", p2Purple: "P2 (Purple)",
+                p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "Practice Mode (No Score)",
                 timeUp: "Time's up!", countReached: "Target reached!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
-                pracCorrect: "Correct!", pracWrong: "Wrong!", btnNext: "Next", btnRetry: "Retry",
+                pracCorrect: "Correct!", pracWrong: "Time out or Wrong!", btnNext: "Next", btnRetry: "Retry",
                 dragHelp: "Drag θ to the correct angle",
                 lblCor: "Correct: ", lblQ: "",
                 prog: (c, m) => `Progress: ${c} / ${m}`,
@@ -291,6 +322,7 @@
             }
         }
 
+        // ================== 狀態變數 ==================
         let difficulty = 1; 
         let mode = 'COUNT'; 
         let maxCount = 10;
@@ -308,25 +340,21 @@
         let currentTrackIdx = -1;
         let menuTrackIdx = -1;
         
-        // 4 首不同風格的 BGM
+        // 音效系統 Tone.js
         async function initAudioAndShowMenu() {
             if(isAudioInit) return;
             await Tone.start();
             Tone.Transport.bpm.value = 110;
             
-            // Track 0: 宇宙氛圍 (首頁)
             const synth0 = new Tone.PolySynth(Tone.Synth).toDestination(); synth0.volume.value = -18;
             const part0 = new Tone.Sequence((time, note) => { synth0.triggerAttackRelease(note, "2n", time); }, ["C4", "E4", "G4", "B3", "C4", "A3", "F3", "G3"], "2n");
             
-            // Track 1: 科技律動 (戰鬥)
             const synth1 = new Tone.Synth({oscillator: {type: "square"}}).toDestination(); synth1.volume.value = -20;
             const part1 = new Tone.Sequence((time, note) => { synth1.triggerAttackRelease(note, "16n", time); }, ["C3", "G3", "C4", "E4", "G4", "E4", "C4", "G3"], "8n");
             
-            // Track 2: 緊張低音 (戰鬥)
             const synth2 = new Tone.FMSynth().toDestination(); synth2.volume.value = -18;
             const part2 = new Tone.Sequence((time, note) => { synth2.triggerAttackRelease(note, "8n", time); }, ["C2", "C2", "D#2", "F2", "C2", "C2", "G2", "F2"], "4n");
             
-            // Track 3: 未來旋律 (戰鬥)
             const synth3 = new Tone.AMSynth().toDestination(); synth3.volume.value = -18;
             const part3 = new Tone.Sequence((time, note) => { synth3.triggerAttackRelease(note, "16n", time); }, ["G4", null, "D5", null, "C5", "B4", "A4", "G4"], "8n");
 
@@ -362,6 +390,7 @@
             };
         }
 
+        // ================== 選單切換 ==================
         function setDiff(lvl) {
             difficulty = lvl;
             const b1 = document.getElementById('btn-lvl1');
@@ -393,8 +422,7 @@
             document.getElementById('gameUI').classList.add('hidden');
             gameState = 'MENU';
             
-            // 首頁隨機播放四首其中一首
-            menuTrackIdx = Math.floor(Math.random() * 4);
+            if(menuTrackIdx === -1) menuTrackIdx = Math.floor(Math.random() * 4);
             playTrack(menuTrackIdx);
         }
 
@@ -417,8 +445,17 @@
             }, 1000);
         }
 
+        // ================== 遊戲主循環 ==================
         function actualGameStart() {
             document.getElementById('gameUI').classList.remove('hidden');
+            
+            // 根據是否為練習模式來套用 CSS 排版類別
+            if(mode === 'PRACTICE') {
+                document.body.classList.add('practice-active');
+                document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
+            } else {
+                document.body.classList.remove('practice-active');
+            }
             
             p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0;
             p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0;
@@ -428,19 +465,14 @@
             startTime = Date.now();
             lasers = []; particles = [];
 
-            // 戰鬥隨機切換另外一首 (1-3)
             let battleTrack = Math.floor(Math.random() * 3) + 1;
             playTrack(battleTrack);
 
-            if(mode === 'PRACTICE') {
-                document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
-                document.querySelector('.health-bar-container').classList.add('invisible');
-            } else {
-                document.querySelector('.health-bar-container').classList.remove('invisible');
-            }
-
-            updateHeaderUI(); updateHealthBar();
-            generateQuestion(p1); generateQuestion(p2);
+            updateHeaderUI(); 
+            if(mode !== 'PRACTICE') updateHealthBar();
+            
+            generateQuestion(p1); 
+            if(mode !== 'PRACTICE') generateQuestion(p2);
 
             clearInterval(mainTimer);
             mainTimer = setInterval(gameTick, 100);
@@ -462,8 +494,10 @@
             }
 
             [p1, p2].forEach(player => {
+                if(mode === 'PRACTICE' && player.id === 2) return; // 練習模式忽略 Player 2
+                
                 const workspace = document.getElementById(`${player.prefix}-workspace`);
-                if(!player.isGenerating && player.qStart > 0 && mode !== 'PRACTICE') {
+                if(!player.isGenerating && player.qStart > 0) {
                     const elapsed = (Date.now() - player.qStart) / 1000;
                     const left = Math.max(0, maxPersonalTime - elapsed);
                     document.getElementById(`timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
@@ -476,19 +510,18 @@
                         workspace.classList.remove('crisis-alert');
                         triggerWrongAnswer(player);
                     }
-                } else if (mode === 'PRACTICE') {
-                    document.getElementById(`timer-bar-${player.prefix}`).style.width = `100%`;
-                    workspace.classList.remove('crisis-alert');
                 }
             });
         }
 
+        // ================== 分數與健康度 ==================
         function updateHeaderUI() {
             document.getElementById('p1-score').innerText = p1.score;
             document.getElementById('p2-score').innerText = p2.score;
         }
 
         function updateHealthBar() {
+            if(mode === 'PRACTICE') return;
             const diff = p1ShipPos - p2ShipPos;
             let p1Percent = 50 + (diff / 7) * 50;
             p1Percent = Math.max(0, Math.min(100, p1Percent));
@@ -503,6 +536,7 @@
             }
         }
 
+        // ================== 答案觸發與反饋 ==================
         function triggerCorrectAnswer(player) {
             player.isGenerating = true;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
@@ -562,6 +596,7 @@
             }
         }
 
+        // ================== 動畫與結束邏輯 ==================
         function animateValue(obj, start, end, duration) {
             let startTimestamp = null;
             const step = (timestamp) => {
@@ -584,7 +619,6 @@
             const endScr = document.getElementById('endScreen');
             endScr.classList.remove('hidden');
             
-            // 結束播放首頁音樂
             if(menuTrackIdx !== -1) playTrack(menuTrackIdx);
 
             const t = i18n[currentLang];
@@ -602,6 +636,7 @@
             document.getElementById('res-cor2').innerText = p2.corrects;
         }
 
+        // ================== 練習模式反饋 ==================
         function showPracticeFeedback(player, isCorrect) {
             const workspace = document.getElementById(`${player.prefix}-workspace`);
             const overlay = document.createElement('div');
@@ -609,9 +644,9 @@
             overlay.id = `practice-overlay-${player.prefix}`;
             overlay.className = "absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center rounded-xl backdrop-blur-sm pointer-events-auto";
             if(isCorrect) {
-                overlay.innerHTML = `<div class="text-green-400 text-2xl font-bold mb-4 font-space">${t.pracCorrect}</div><button onclick="nextPracticeQ(${player.id})" class="px-6 py-2 bg-green-600 rounded-lg text-white font-bold shadow-[0_0_10px_#16a34a]">${t.btnNext}</button>`;
+                overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space">${t.pracCorrect}</div><button onclick="nextPracticeQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:scale-105 transition">▶ ${t.btnNext}</button>`;
             } else {
-                overlay.innerHTML = `<div class="text-red-400 text-2xl font-bold mb-4 font-space">${t.pracWrong}</div><button onclick="retryPracticeQ(${player.id})" class="px-6 py-2 bg-red-600 rounded-lg text-white font-bold shadow-[0_0_10px_#dc2626]">${t.btnRetry}</button>`;
+                overlay.innerHTML = `<div class="text-red-400 text-2xl md:text-3xl font-bold mb-4 font-space">${t.pracWrong}</div><button onclick="retryPracticeQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:scale-105 transition">↺ ${t.btnRetry}</button>`;
             }
             workspace.style.position = 'relative';
             workspace.appendChild(overlay);
@@ -635,11 +670,12 @@
         }
 
         function fmt(num) {
-            if(typeof num !== 'number') return num; // 處理字母情況
+            if(typeof num !== 'number') return num; 
             if(Number.isInteger(num)) return num;
-            return Number(num.toPrecision(3)); // 有效數字 3 位
+            return Number(num.toPrecision(3)); 
         }
 
+        // ================== 題目生成 ==================
         function generateQuestion(player) {
             player.qStart = Date.now();
             player.isGenerating = false;
@@ -648,7 +684,6 @@
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
             
             let o, a, h;
-            // 難度 1 有一半機率出字母
             const useLetters = difficulty === 1 && Math.random() > 0.5;
             if(useLetters) {
                 const lSets = [['a', 'b', 'c'], ['x', 'y', 'z'], ['p', 'q', 'r']];
@@ -664,16 +699,16 @@
             
             const funcs = ['sin', 'cos', 'tan'];
             const func = funcs[Math.floor(Math.random() * funcs.length)];
-            const rot = Math.floor(Math.random() * 360); // 全面隨機角度
+            const rot = Math.floor(Math.random() * 360); 
             
             let q = { math: {o, a, h}, func, type: 0, rotation: rot };
             q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
             q.correctDen = func === 'tan' ? a : h;
 
             if(difficulty === 2) {
-                q.type = Math.floor(Math.random() * 5) + 1; // 1~5
+                q.type = Math.floor(Math.random() * 5) + 1; 
             } else {
-                q.type = Math.floor(Math.random() * 3) + 1; // 1~3
+                q.type = Math.floor(Math.random() * 3) + 1; 
             }
 
             if(q.type >= 4) {
@@ -691,7 +726,6 @@
                     q.options.sort(() => Math.random() - 0.5);
                     q.answer = correctAns;
                 } else if (q.type === 5) {
-                    // Type 5: 給定邊長，求角度度數 (非畢氏三元素)
                     let op = Math.floor(Math.random() * 15) + 3;
                     let ad = Math.floor(Math.random() * 15) + 3;
                     let hy = Math.sqrt(op*op + ad*ad);
@@ -716,18 +750,18 @@
             }
         }
 
+        // ================== 渲染 SVG ==================
         function getSVG(o, a, h, config) {
-            const size = 200; 
-            const pad = 50;   
+            const size = 250; 
+            const pad = 60;   
             
-            // 處理字母或數字以計算合適的畫圖比例
             let mockO = typeof o === 'string' ? 5 : o;
             let mockA = typeof a === 'string' ? 5 : a;
             const scale = Math.min((size - pad*2) / mockA, (size - pad*2) / mockO);
             const drawA = mockA * scale;
             const drawO = mockO * scale;
             
-            const pRightX = size - pad; const pRightY = size - pad + 10; 
+            const pRightX = size - pad; const pRightY = size - pad + 15; 
             const pBotLeftX = pRightX - drawA; const pBotLeftY = pRightY;
             const pTopRightX = pRightX; const pTopRightY = pRightY - drawO;
 
@@ -766,14 +800,12 @@
                     const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
                     const dx = midX - cx; const dy = midY - cy;
                     const len = Math.hypot(dx, dy) || 1;
-                    // 將距離由原本的 40 縮減至 18，讓數字貼近邊線且不重疊
                     return {x: midX + (dx/len)*18, y: midY + (dy/len)*18}; 
                 }
                 const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
                 const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
                 const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
 
-                // 移除了 font-space 樣式，改用預設的普通字體以利辨認
                 svg += `<text x="${posA.x}" y="${posA.y + 6}" class="tri-text" font-size="16">${a}</text>`;
                 svg += `<text x="${posO.x}" y="${posO.y + 6}" class="tri-text" font-size="16">${o}</text>`;
                 svg += `<text x="${posH.x}" y="${posH.y + 6}" class="tri-text" font-size="16">${h}</text>`;
@@ -787,13 +819,14 @@
                     return {x: ra.x - (dx/len)*38, y: ra.y - (dy/len)*38}; 
                 }
                 let tPos = config.thetaPos === 'bottom' ? getThetaPos(pBotLeftX, pBotLeftY) : getThetaPos(pTopRightX, pTopRightY);
-                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" class="tri-text font-space" fill="#ffeb3b" font-size="16">θ</text>`;
+                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" class="tri-text" fill="#ffeb3b" font-size="18">θ</text>`;
             }
 
             svg += `</svg>`;
             return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
         }
 
+        // ================== 工作區渲染 ==================
         function renderLevel2Workspace(player, q) {
             const promptText = q.type === 4 ? `${q.func}(θ) = ?` : q.promptType5;
             document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${promptText}</span>`;
@@ -877,6 +910,7 @@
             setTimeout(() => attachDragListeners(player), 50);
         }
 
+        // ================== 拖曳系統 ==================
         let activeDrag = null; let ghostEl = null;
 
         function attachDragListeners(player) {
@@ -946,6 +980,7 @@
             if(!checkTriggered) renderLevel1Workspace(player); 
         }
 
+        // ================== Canvas 繪圖引擎 ==================
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         let canvasW, canvasH, p1Ships = [], p2Ships = [], lasers = [], particles = [], stars = [];
 
@@ -981,20 +1016,23 @@
 
             if(gameState !== 'PLAYING') { requestAnimationFrame(renderCanvas); return; }
 
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath();
-            ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
-            ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
+            // 在練習模式下不繪製對戰專用的血量連接線與雙方飛船
+            if (mode !== 'PRACTICE') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath();
+                ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
+                ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
 
-            const now = Date.now(); const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
+                const now = Date.now(); const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
 
-            ctx.font = '28px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            
-            const s1 = p1Ships[p1ShipPos];
-            ctx.shadowColor = '#0ff'; ctx.shadowBlur = 20; ctx.fillText('🚀', s1.x, s1.y + f1);
-            
-            const s2 = p2Ships[p2ShipPos];
-            ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 20; ctx.save(); ctx.translate(s2.x, s2.y + f2); ctx.scale(-1, 1);
-            ctx.fillText('🚀', 0, 0); ctx.restore(); ctx.shadowBlur = 0;
+                ctx.font = '28px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                
+                const s1 = p1Ships[p1ShipPos];
+                ctx.shadowColor = '#0ff'; ctx.shadowBlur = 20; ctx.fillText('🚀', s1.x, s1.y + f1);
+                
+                const s2 = p2Ships[p2ShipPos];
+                ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 20; ctx.save(); ctx.translate(s2.x, s2.y + f2); ctx.scale(-1, 1);
+                ctx.fillText('🚀', 0, 0); ctx.restore(); ctx.shadowBlur = 0;
+            }
 
             for(let i=lasers.length-1; i>=0; i--) {
                 const l = lasers[i]; l.prog += 0.2;
