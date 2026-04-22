@@ -99,27 +99,44 @@
         body.practice-active #p1-area {
             flex: none !important;
             width: 100% !important;
-            max-width: 600px !important;
-            margin: 0 auto !important; /* X 軸置中 */
+            max-width: 650px !important;
+            margin: 0 auto !important; 
             justify-content: center !important;
-            align-items: center !important; /* 確保內容在容器中心 */
+            align-items: center !important; 
+        }
+        body.practice-active #p1-area > .bg-gray-800 {
+            /* 隱藏原本的計時條外殼，改用 workspace 內部的特製頂部計時條 */
+            display: none !important; 
         }
         body.practice-active #p1-workspace {
-            transform: translateY(-5vh); /* 稍微往上移避免壓底 */
+            transform: translateY(-5vh); 
             transform-origin: center center;
             max-height: none !important;
             height: auto;
             border-width: 2px;
             width: 100%;
+            padding-top: 1.5rem !important; /* 騰出空間給頂部計時條 */
         }
-        body.practice-active #timer-bar-p1 {
-            height: 10px !important;
+        /* 獨自稱霸專用：頂部粗型計時條 */
+        .solo-timer-container {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 12px;
+            background: #1f2937;
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
         }
+        body.practice-active .solo-timer-container {
+            display: block;
+        }
+        
         body.practice-active #p1-svg-container {
             min-height: 220px;
         }
         body.practice-active #p1-svg-container svg {
-            transform: scale(1.12); /* 放大 SVG 圖形 */
+            transform: scale(1); /* 恢復為正常 100% 倍率 */
             overflow: visible; 
         }
     </style>
@@ -175,6 +192,10 @@
                     <div id="timer-bar-p1" class="h-full bg-cyan-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
                 <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[450px] transition-all relative">
+                    <!-- 單人模式專用頂部計時條 -->
+                    <div class="solo-timer-container">
+                        <div id="solo-timer-bar-p1" class="h-full bg-cyan-400 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
+                    </div>
                     <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
                     <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p1-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
@@ -287,7 +308,7 @@
                 pracModeInfo: "獨自稱霸 (單人模式)",
                 timeUp: "時間到！", countReached: "題數達成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
-                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題",
+                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
                 dragHelp: "請將 θ 拖至正確角",
                 lblCor: "答對: ", lblQ: " 題", totalTime: "總答題時間: ", secs: " 秒",
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
@@ -302,7 +323,7 @@
                 pracModeInfo: "Solo Mode (Time & Score)",
                 timeUp: "Time's up!", countReached: "Target reached!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
-                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next",
+                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
                 dragHelp: "Drag θ to the correct angle",
                 lblCor: "Correct: ", lblQ: "", totalTime: "Total Time: ", secs: " s",
                 prog: (c, m) => `Progress: ${c} / ${m}`,
@@ -538,7 +559,12 @@
                 if(!player.isGenerating && player.qStart > 0) {
                     const elapsed = (Date.now() - player.qStart) / 1000;
                     const left = Math.max(0, maxPersonalTime - elapsed);
+                    
+                    // 更新對戰模式和單人模式的計時條
                     document.getElementById(`timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
+                    if(mode === 'PRACTICE') {
+                        document.getElementById(`solo-timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
+                    }
                     
                     if(left <= 3 && left > 0) workspace.classList.add('crisis-alert');
                     else workspace.classList.remove('crisis-alert');
@@ -606,11 +632,11 @@
                 if (isTimeout) {
                     player.isGenerating = true;
                     document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-                    showSoloFeedback(player, false, true); // 時間到直接算錯，出對話框
+                    showSoloFeedback(player, false, true); // 時間到直接出對話框
                     return;
                 }
                 
-                // 每錯一次扣 20 分
+                // 答錯扣 20 分
                 player.score = Math.max(0, player.score - 20);
                 updateHeaderUI();
 
@@ -619,11 +645,12 @@
                 ws.classList.add('shake-err');
                 setTimeout(() => ws.classList.remove('shake-err'), 300);
 
-                if (player.wrongAttempts >= 2) {
-                    player.isGenerating = true; // 鎖定作答
-                    showSoloFeedback(player, false, false); // 兩次錯誤出對話框
+                if (player.wrongAttempts >= 2 || difficulty >= 2) {
+                    // Level 2/3 或兩次錯誤，直接出解答
+                    player.isGenerating = true; 
+                    showSoloFeedback(player, false, false); 
                 } else {
-                    // 第 1 次錯誤，僅震動，重設 Level 1 拖曳方塊讓玩家重試
+                    // Level 1 第 1 次錯誤，僅震動，重設選項讓玩家重試
                     if (difficulty === 1) {
                         player.dndState = {};
                         setTimeout(() => renderLevel1Workspace(player), 300);
@@ -646,10 +673,11 @@
             if(difficulty === 2 || difficulty === 3) {
                 setTimeout(() => generateQuestion(player), 400);
             } else {
-                if(player.wrongAttempts >= 2 || (Date.now() - player.qStart) >= (maxPersonalTime*1000)) { 
+                if((Date.now() - player.qStart) >= (maxPersonalTime*1000) || isTimeout) { 
                     setTimeout(() => generateQuestion(player), 400);
                 } else {
                     setTimeout(() => {
+                        player.dndState = {}; // 選項歸回原位，讓玩家再次挑戰
                         renderLevel1Workspace(player);
                         player.isGenerating = false;
                     }, 300);
@@ -683,13 +711,23 @@
             } else {
                 overlay.style.borderColor = "#ef4444";
                 
-                // 產生正確答案提示字串
+                // 產生正確答案字串，並處理漂亮的分數排版
                 let correctStr = "";
                 const q = player.currentQ;
+                
+                let displayAns = q.answer;
+                // 如果答案字串中包含 '/' 且是數字，轉換成直式分數
+                if (typeof displayAns === 'string' && displayAns.includes('/')) {
+                    const parts = displayAns.split('/');
+                    if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                        displayAns = `<div class="inline-flex flex-col items-center leading-none mx-2 align-middle text-2xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${parts[0]}</span><span class="px-2 pt-[3px]">${parts[1]}</span></div>`;
+                    }
+                }
+
                 if(q.type >= 4) {
-                    correctStr = `${t.correctIs}${q.answer}`;
+                    correctStr = `${t.correctIs}${displayAns}`;
                 } else {
-                    if(q.type === 1) correctStr = `${t.correctIs}${q.correctNum} / ${q.correctDen}`;
+                    if(q.type === 1) correctStr = `${t.correctIs}<div class="inline-flex flex-col items-center leading-none mx-2 align-middle text-2xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${q.correctNum}</span><span class="px-2 pt-[3px]">${q.correctDen}</span></div>`;
                     else if(q.type === 2) correctStr = `${t.correctIs}${q.func}`;
                     else if(q.type === 3) correctStr = `${t.hintTheta}${q.math.o}`;
                 }
@@ -698,7 +736,7 @@
 
                 overlay.innerHTML = `
                     <div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${titleStr}</div>
-                    <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full">${correctStr}</div>
+                    <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full flex items-center justify-center">${correctStr}</div>
                     <button onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
                 `;
             }
@@ -777,6 +815,16 @@
             }
         }
 
+        function generateOptions(ans, allStr = false) {
+            let opts = [ans];
+            while(opts.length < 4) {
+                let fake = Math.floor(Math.random() * 30) + 1;
+                if(allStr) fake = fake.toString();
+                if(!opts.includes(fake) && fake !== ans) opts.push(fake);
+            }
+            return opts.sort(() => Math.random() - 0.5);
+        }
+
         function generateQuestion(player) {
             player.qStart = Date.now();
             player.isGenerating = false;
@@ -806,7 +854,7 @@
             q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
             q.correctDen = func === 'tan' ? a : h;
 
-            // Level 3 邏輯
+            // Level 3 邏輯 (複合三角形)
             if (difficulty === 3) {
                 const pair = doubleTriples[Math.floor(Math.random() * doubleTriples.length)];
                 const swapLR = Math.random() > 0.5;
@@ -818,31 +866,40 @@
 
                 q.math = { o: comm_o, a1, h1, a2, h2 };
                 q.isComposite = true;
+                
+                // 目標角可能在左側或右側
+                q.targetAngle = Math.random() > 0.5 ? 'left' : 'right';
+                const angleChar = q.targetAngle === 'left' ? 'α' : 'β';
 
-                q.type = Math.random() > 0.5 ? 6 : 7; // 6: 求比例, 7: 求角度
+                q.type = Math.floor(Math.random() * 3) + 6; // 6: 求比例, 7: 求角度, 8: 求未知邊
                 
                 if (q.type === 6) {
-                    q.func = func;
+                    q.labels = { o: comm_o, a1, h1, a2, h2 };
+                    q.func = funcs[Math.floor(Math.random() * funcs.length)];
                     let correctAns;
-                    if(func === 'sin') correctAns = `${comm_o}/${h2}`;
-                    else if(func === 'cos') correctAns = `${a2}/${h2}`;
-                    else correctAns = `${comm_o}/${a2}`;
-
-                    let opts = [correctAns, `${a2}/${h2}`, `${comm_o}/${a2}`, `${h2}/${comm_o}`];
-                    if(func==='cos'){ opts[1] = `${comm_o}/${h2}`; opts[2] = `${a2}/${comm_o}`; }
-                    if(func==='tan'){ opts[1] = `${h2}/${a2}`; opts[3] = `${a2}/${comm_o}`; }
-
-                    q.options = [...new Set(opts)];
-                    while(q.options.length < 4) {
-                        q.options.push(`${Math.floor(Math.random()*15)+1}/${Math.floor(Math.random()*20)+1}`);
-                        q.options = [...new Set(q.options)];
+                    if (q.targetAngle === 'left') {
+                        if(q.func === 'sin') correctAns = `${comm_o}/${h1}`;
+                        else if(q.func === 'cos') correctAns = `${a1}/${h1}`;
+                        else correctAns = `${comm_o}/${a1}`;
+                    } else {
+                        if(q.func === 'sin') correctAns = `${comm_o}/${h2}`;
+                        else if(q.func === 'cos') correctAns = `${a2}/${h2}`;
+                        else correctAns = `${comm_o}/${a2}`;
                     }
-                    q.options.sort(() => Math.random() - 0.5);
+
+                    let opts = [correctAns];
+                    while(opts.length < 4) {
+                        opts.push(`${Math.floor(Math.random()*15)+1}/${Math.floor(Math.random()*20)+1}`);
+                        opts = [...new Set(opts)];
+                    }
+                    q.options = opts.sort(() => Math.random() - 0.5);
                     q.answer = correctAns;
-                    q.prompt = `${func}(β) = ?`;
-                } else {
-                    let thetaDeg = Math.atan2(comm_o, a2) * 180 / Math.PI;
+                    q.prompt = `${q.func}(${angleChar}) = ?`;
+                } else if (q.type === 7) {
+                    q.labels = { o: comm_o, a1, h1, a2, h2 };
+                    let thetaDeg = q.targetAngle === 'left' ? (Math.atan2(comm_o, a1) * 180 / Math.PI) : (Math.atan2(comm_o, a2) * 180 / Math.PI);
                     q.answer = fmt(thetaDeg) + "°";
+                    
                     let opts = [q.answer];
                     while(opts.length < 4) {
                         let fakeTheta = thetaDeg + (Math.random() * 40 - 20);
@@ -851,8 +908,54 @@
                         if(!opts.includes(fake)) opts.push(fake);
                     }
                     q.options = opts.sort(() => Math.random() - 0.5);
-                    q.prompt = `β = ?`;
+                    q.prompt = `${angleChar} = ?`;
+                } else if (q.type === 8) {
+                    // Type 8: 給定一側的角度比例，求另一側的未知邊 x
+                    q.func = funcs[Math.floor(Math.random() * funcs.length)];
+                    let givenRatio = "";
+                    let sideToShow = "";
+                    
+                    if (q.targetAngle === 'left') {
+                        if(q.func === 'sin') { givenRatio = `${comm_o}/${h1}`; sideToShow = 'h1'; }
+                        else if(q.func === 'cos') { givenRatio = `${a1}/${h1}`; sideToShow = 'h1'; }
+                        else { givenRatio = `${comm_o}/${a1}`; sideToShow = 'a1'; }
+                        
+                        const askSide = Math.random() > 0.5 ? 'h2' : 'a2';
+                        const otherSide = askSide === 'h2' ? 'a2' : 'h2';
+                        
+                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' };
+                        q.labels[sideToShow] = (sideToShow === 'h1' ? h1 : a1);
+                        q.labels[otherSide] = (otherSide === 'h2' ? h2 : a2);
+                        q.labels[askSide] = 'x';
+                        
+                        q.answer = (askSide === 'h2' ? h2 : a2).toString();
+                    } else {
+                        if(q.func === 'sin') { givenRatio = `${comm_o}/${h2}`; sideToShow = 'h2'; }
+                        else if(q.func === 'cos') { givenRatio = `${a2}/${h2}`; sideToShow = 'h2'; }
+                        else { givenRatio = `${comm_o}/${a2}`; sideToShow = 'a2'; }
+                        
+                        const askSide = Math.random() > 0.5 ? 'h1' : 'a1';
+                        const otherSide = askSide === 'h1' ? 'a1' : 'h1';
+                        
+                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' };
+                        q.labels[sideToShow] = (sideToShow === 'h2' ? h2 : a2);
+                        q.labels[otherSide] = (otherSide === 'h1' ? h1 : a1);
+                        q.labels[askSide] = 'x';
+                        
+                        q.answer = (askSide === 'h1' ? h1 : a1).toString();
+                    }
+                    
+                    q.prompt = `若 ${q.func}(${angleChar}) = ${givenRatio}，求 x = ?`;
+                    
+                    let opts = [q.answer];
+                    while(opts.length < 4) {
+                        let fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) - 4).toString();
+                        if(fake <= 0) fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) + 1).toString();
+                        if(!opts.includes(fake) && fake !== q.answer) opts.push(fake);
+                    }
+                    q.options = opts.sort(() => Math.random() - 0.5);
                 }
+                
                 player.currentQ = q;
                 renderLevel3Workspace(player, q);
                 return;
@@ -905,7 +1008,7 @@
 
         function getSVG(o, a, h, config) {
             const size = 300; 
-            const pad = 80;   
+            const pad = 70; // 從 80 縮小為 70，使內部圖形放大約 5%
             
             let mockO = typeof o === 'string' ? 5 : o;
             let mockA = typeof a === 'string' ? 5 : a;
@@ -928,7 +1031,7 @@
                 return {x: nx, y: ny};
             }
 
-            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}">`;
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
             svg += `<g transform="rotate(${rot}, ${cx}, ${cy})">`;
             svg += `<polygon points="${pBotLeftX},${pBotLeftY} ${pRightX},${pRightY} ${pTopRightX},${pTopRightY}" class="svg-tri ${config.colorClass}"/>`;
             svg += `<polyline points="${pRightX-12},${pRightY} ${pRightX-12},${pRightY-12} ${pRightX},${pRightY-12}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
@@ -952,15 +1055,18 @@
                     const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
                     const dx = midX - cx; const dy = midY - cy;
                     const len = Math.hypot(dx, dy) || 1;
-                    return {x: midX + (dx/len)*18, y: midY + (dy/len)*18}; 
+                    return {x: midX + (dx/len)*20, y: midY + (dy/len)*20}; // 偏移量從 18 增加到 20，避免重疊
                 }
                 const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
                 const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
                 const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
 
-                svg += `<text x="${posA.x}" y="${posA.y + 6}" class="tri-text" font-size="17">${a}</text>`;
-                svg += `<text x="${posO.x}" y="${posO.y + 6}" class="tri-text" font-size="17">${o}</text>`;
-                svg += `<text x="${posH.x}" y="${posH.y + 6}" class="tri-text" font-size="17">${h}</text>`;
+                // 強制純白文字，並增加文字陰影避免與背景光效混淆
+                const textStyle = `fill="#ffffff" font-size="17" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;"`;
+                
+                svg += `<text x="${posA.x}" y="${posA.y + 6}" ${textStyle}>${a}</text>`;
+                svg += `<text x="${posO.x}" y="${posO.y + 6}" ${textStyle}>${o}</text>`;
+                svg += `<text x="${posH.x}" y="${posH.y + 6}" ${textStyle}>${h}</text>`;
             }
 
             if(config.showTheta) {
@@ -971,7 +1077,7 @@
                     return {x: ra.x - (dx/len)*38, y: ra.y - (dy/len)*38}; 
                 }
                 let tPos = config.thetaPos === 'bottom' ? getThetaPos(pBotLeftX, pBotLeftY) : getThetaPos(pTopRightX, pTopRightY);
-                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" class="tri-text" fill="#ffeb3b" font-size="20">θ</text>`;
+                svg += `<text x="${tPos.x}" y="${tPos.y + 6}" fill="#ffeb3b" font-weight="bold" text-anchor="middle" font-size="20" style="text-shadow: 1px 1px 2px #000;">θ</text>`;
             }
 
             svg += `</svg>`;
@@ -981,7 +1087,7 @@
         // Level 3 雙三角形繪製
         function getCompositeSVG(q, config) {
             const size = 300;
-            const pad = 60;
+            const pad = 50; // 邊距縮小，使雙三角形更大
             const totalW = q.math.a1 + q.math.a2;
             const maxW = size - pad * 2;
             const maxH = size - pad * 2;
@@ -999,46 +1105,92 @@
             const pLeft = { x: cx - drawA1, y: cy };
             const pRight = { x: cx + drawA2, y: cy };
 
-            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}">`;
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
+            
+            // 旋轉中心與角度
+            const rot = config.rotation || 0;
+            const rotCx = size / 2;
+            const rotCy = size / 2;
+
+            svg += `<g transform="rotate(${rot}, ${rotCx}, ${rotCy})">`;
 
             // 畫左右三角形
             svg += `<polygon points="${pLeft.x},${pLeft.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.02)"/>`;
             svg += `<polygon points="${pRight.x},${pRight.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.05)"/>`;
 
+            const { labels, targetAngle } = q;
+
             // 共用對邊虛線
-            svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
+            if (labels.o || labels.o === 'x') {
+                svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+            } else {
+                svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
+            }
 
             // 直角標示
             svg += `<polyline points="${pBot.x-10},${pBot.y} ${pBot.x-10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
             svg += `<polyline points="${pBot.x+10},${pBot.y} ${pBot.x+10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
 
-            // 文字標籤工具
-            const textPos = (p1, p2, offset = 18) => {
-                const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2;
-                const dx = p1.y - p2.y; const dy = p2.x - p1.x; // 法向量計算
-                const len = Math.hypot(dx, dy) || 1;
-                return { x: midX + (dx/len)*offset, y: midY + (dy/len)*offset };
+            // 目標角弧線繪製
+            const arcR = 25;
+            if (targetAngle === 'left' || targetAngle === 'both') {
+                const aRad1 = Math.atan2(drawO, drawA1);
+                const endX1 = pLeft.x + arcR * Math.cos(aRad1);
+                const endY1 = pLeft.y - arcR * Math.sin(aRad1);
+                svg += `<path d="M ${pLeft.x + arcR} ${pLeft.y} A ${arcR} ${arcR} 0 0 0 ${endX1} ${endY1}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
+            }
+            if (targetAngle === 'right' || targetAngle === 'both') {
+                const aRad2 = Math.atan2(drawO, drawA2);
+                const startX2 = pRight.x - arcR;
+                const endX2 = pRight.x - arcR * Math.cos(aRad2);
+                const endY2 = pRight.y - arcR * Math.sin(aRad2);
+                svg += `<path d="M ${startX2} ${pRight.y} A ${arcR} ${arcR} 0 0 1 ${endX2} ${endY2}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
+            }
+
+            svg += `</g>`;
+
+            // --- 文字標籤工具 (在旋轉群組外，確保文字正立) ---
+            function getRotatedTextPos(x, y) {
+                const rad = rot * Math.PI / 180;
+                const nx = Math.cos(rad)*(x-rotCx) - Math.sin(rad)*(y-rotCy) + rotCx;
+                const ny = Math.sin(rad)*(x-rotCx) + Math.cos(rad)*(y-rotCy) + rotCy;
+                return {x: nx, y: ny};
+            }
+
+            const drawLabel = (pos, text, isX = false) => {
+                if (!text && text !== 0 && text !== '0') return "";
+                const color = isX ? "#ffeb3b" : "#ffffff";
+                const size = isX ? "22" : "17";
+                return `<text x="${pos.x}" y="${pos.y+6}" fill="${color}" font-size="${size}" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;">${text}</text>`;
             };
 
-            const posH1 = textPos(pTop, pLeft, 22);
-            svg += `<text x="${posH1.x}" y="${posH1.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.h1}</text>`;
+            // 自動計算外推法向量並決定旋轉後的文字位置
+            const textOffset = (p1, p2, offset, swap) => {
+                const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2;
+                const vx = p2.x - p1.x; const vy = p2.y - p1.y; 
+                let nx = -vy; let ny = vx;
+                if (swap) { nx = vy; ny = -vx; }
+                const len = Math.hypot(nx, ny) || 1;
+                const rotP = getRotatedTextPos(midX + (nx/len)*offset, midY + (ny/len)*offset);
+                return {x: rotP.x, y: rotP.y};
+            }
 
-            const posA1 = textPos(pLeft, pBot, 20);
-            svg += `<text x="${posA1.x}" y="${posA1.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.a1}</text>`;
+            // 繪製外圍邊長
+            if(labels.h1) svg += drawLabel(textOffset(pLeft, pTop, 22, true), labels.h1, labels.h1==='x');
+            if(labels.a1) svg += drawLabel(textOffset(pLeft, pBot, 22, false), labels.a1, labels.a1==='x');
+            if(labels.h2) svg += drawLabel(textOffset(pRight, pTop, 22, false), labels.h2, labels.h2==='x');
+            if(labels.a2) svg += drawLabel(textOffset(pBot, pRight, 22, false), labels.a2, labels.a2==='x');
+            if(labels.o || labels.o === 'x') svg += drawLabel(textOffset(pBot, pTop, 22, true), labels.o, labels.o==='x');
 
-            const posA2 = textPos(pBot, pRight, 20);
-            svg += `<text x="${posA2.x}" y="${posA2.y+6}" fill="#fff" font-size="16" font-weight="bold" text-anchor="middle">${q.math.a2}</text>`;
-
-            // Beta (β) 角度標示在右側三角形
-            const arcR = 25;
-            const aRad = Math.atan2(drawO, drawA2);
-            const startX = pRight.x - arcR;
-            const startY = pRight.y;
-            const endX = pRight.x - arcR * Math.cos(aRad);
-            const endY = pRight.y - arcR * Math.sin(aRad);
-            
-            svg += `<path d="M ${startX} ${startY} A ${arcR} ${arcR} 0 0 1 ${endX} ${endY}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
-            svg += `<text x="${pRight.x - 38}" y="${pRight.y - 12}" fill="#ffeb3b" font-size="18" font-weight="bold">β</text>`;
+            // 繪製目標角名稱 α / β
+            if (targetAngle === 'left' || targetAngle === 'both') {
+                const pos = getRotatedTextPos(pLeft.x + 38, pLeft.y - 12);
+                svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">α</text>`;
+            }
+            if (targetAngle === 'right' || targetAngle === 'both') {
+                const pos = getRotatedTextPos(pRight.x - 38, pRight.y - 12);
+                svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">β</text>`;
+            }
 
             svg += `</svg>`;
             return { html: svg };
