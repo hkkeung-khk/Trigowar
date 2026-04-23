@@ -70,7 +70,7 @@
         #gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
         .ui-layer { position: absolute; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: none; }
         
-        .btn-l2 { background: linear-gradient(135deg, #1f2937, #374151); border: 1px solid #4b5563; }
+        .btn-l2 { background: linear-gradient(135deg, #1f2937, #374151); border: 1px solid #4b5563; touch-action: manipulation; }
         .btn-l2:active { transform: scale(0.95); }
 
         .svg-tri polygon { fill: rgba(255,255,255,0.05); stroke-width: 2; stroke-linejoin: round; }
@@ -84,7 +84,7 @@
         .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
         /* =========================================
-           獨自稱霸 (單人) 模式專屬 CSS 排版
+           獨自稱霸 (單人) 模式專屬 CSS 排版 (增強適配性)
         ========================================= */
         body.practice-active #p2-area,
         body.practice-active #battle-spacer,
@@ -105,19 +105,16 @@
             align-items: center !important; 
         }
         body.practice-active #p1-area > .bg-gray-800 {
-            /* 隱藏原本的計時條外殼，改用 workspace 內部的特製頂部計時條 */
             display: none !important; 
         }
         body.practice-active #p1-workspace {
-            transform: translateY(-5vh); 
             transform-origin: center center;
-            max-height: none !important;
+            max-height: 70vh !important;
             height: auto;
             border-width: 2px;
             width: 100%;
-            padding-top: 1.5rem !important; /* 騰出空間給頂部計時條 */
+            padding-top: 1.5rem !important;
         }
-        /* 獨自稱霸專用：頂部粗型計時條 */
         .solo-timer-container {
             display: none;
             position: absolute;
@@ -131,12 +128,14 @@
         body.practice-active .solo-timer-container {
             display: block;
         }
-        
         body.practice-active #p1-svg-container {
-            min-height: 220px;
+            min-height: 25vh;
+            flex-shrink: 1;
         }
         body.practice-active #p1-svg-container svg {
-            transform: scale(1); /* 恢復為正常 100% 倍率 */
+            transform: scale(1); /* 回歸正常比例，使用 100% 響應式 */
+            max-width: 100%;
+            max-height: 100%;
             overflow: visible; 
         }
     </style>
@@ -147,7 +146,7 @@
 
     <!-- 音效啟動遮罩 -->
     <div id="audio-init-overlay" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center text-white cursor-pointer transition-opacity" onclick="initAudioAndShowMenu()">
-        <h1 class="text-4xl md:text-6xl font-space font-bold animate-breathe mb-4 text-cyan-400">宇宙三角防衛戰</h1>
+        <h1 class="text-4xl md:text-6xl font-space font-bold animate-breathe mb-4 text-cyan-400 text-center px-4">宇宙三角防衛戰</h1>
         <h2 class="text-2xl md:text-3xl font-space font-bold animate-breathe mb-8 text-cyan-200">Trigowar</h2>
         <div class="text-xl md:text-2xl animate-pulse">點擊畫面啟動系統 / Click to Enter</div>
     </div>
@@ -159,7 +158,7 @@
 
     <!-- 遊戲主要 UI -->
     <div id="gameUI" class="ui-layer hidden">
-        <div class="top-bar pointer-events-auto bg-black/60 backdrop-blur-sm border-b border-gray-800 p-2 md:p-4 flex flex-col gap-2 shrink-0">
+        <div class="top-bar pointer-events-auto bg-black/60 backdrop-blur-sm border-b border-gray-800 p-2 md:p-4 flex flex-col gap-1 md:gap-2 shrink-0">
             <div class="flex justify-between items-center px-1">
                 <button id="btn-end" onclick="forceEndGame()" class="px-3 py-1 bg-red-600/80 text-white rounded text-sm font-bold hover:bg-red-500 transition shadow-[0_0_10px_rgba(239,68,68,0.5)]">結束遊戲</button>
                 <div id="gameInfoText" class="text-yellow-400 font-bold font-space text-sm md:text-lg tracking-widest drop-shadow-[0_0_5px_#facc15]">進度載入中...</div>
@@ -185,41 +184,41 @@
             </div>
         </div>
 
-        <div class="battle-area flex-1 flex flex-row px-2 pb-[10vh] md:pb-[15vh] pt-2 gap-2 md:gap-8 overflow-hidden pointer-events-none">
+        <div class="battle-area flex-1 flex flex-row px-2 pb-[8vh] md:pb-[10vh] pt-2 gap-2 md:gap-8 overflow-hidden pointer-events-none">
             <!-- P1 區域 -->
-            <div id="p1-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
+            <div id="p1-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative min-w-0">
                 <div class="w-full h-[6px] md:h-[10px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#0ff]">
                     <div id="timer-bar-p1" class="h-full bg-cyan-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[450px] transition-all relative">
+                <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[500px] md:max-h-[500px] transition-all relative">
                     <!-- 單人模式專用頂部計時條 -->
                     <div class="solo-timer-container">
                         <div id="solo-timer-bar-p1" class="h-full bg-cyan-400 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                     </div>
-                    <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
-                    <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
-                    <div id="p1-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
+                    <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[100px] overflow-visible"></div>
+                    <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[40px] md:min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
+                    <div id="p1-interaction" class="h-14 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2 relative z-10"></div>
                 </div>
             </div>
 
-            <div id="battle-spacer" class="w-8 md:w-20 shrink-0"></div>
+            <div id="battle-spacer" class="w-4 md:w-16 shrink-0"></div>
 
             <!-- P2 區域 -->
-            <div id="p2-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative">
+            <div id="p2-area" class="flex-1 pointer-events-auto flex flex-col justify-end relative min-w-0">
                 <div class="w-full h-[6px] md:h-[10px] bg-gray-800 rounded-full mb-1 overflow-hidden relative shadow-[0_0_5px_#c084fc]">
                     <div id="timer-bar-p2" class="h-full bg-purple-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
-                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[450px] transition-all relative">
-                    <div id="p2-svg-container" class="flex-1 relative flex items-center justify-center min-h-[120px]"></div>
-                    <div id="p2-prompt" class="text-center font-bold text-purple-200 mt-1 min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
-                    <div id="p2-interaction" class="h-16 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2"></div>
+                <div id="p2-workspace" class="neon-box neon-p2 p-2 rounded-xl flex flex-col h-full max-h-[500px] md:max-h-[500px] transition-all relative">
+                    <div id="p2-svg-container" class="flex-1 relative flex items-center justify-center min-h-[100px] overflow-visible"></div>
+                    <div id="p2-prompt" class="text-center font-bold text-purple-200 mt-1 min-h-[40px] md:min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
+                    <div id="p2-interaction" class="h-14 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2 relative z-10"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- 首頁選單 -->
-    <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-center px-4 bg-black/80 backdrop-blur-md hidden pointer-events-auto">
+    <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-center px-4 bg-black/80 backdrop-blur-md hidden pointer-events-auto overflow-y-auto py-8">
         <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, #000 100%);"></div>
         
         <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-2 font-space text-center drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] relative z-10 animate-breathe">
@@ -248,11 +247,26 @@
             <div class="mb-5">
                 <label class="block text-purple-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">GAME MODE</label>
                 <div class="flex gap-2 mb-3">
-                    <button id="btn-mode-count" onclick="setMode('COUNT')" class="flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm">爭分奪秒</button>
-                    <button id="btn-mode-time" onclick="setMode('TIME')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm">霸王餐</button>
-                    <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm">獨自稱霸</button>
+                    <button id="btn-mode-count" onclick="setMode('COUNT')" class="flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base">爭分奪秒</button>
+                    <button id="btn-mode-time" onclick="setMode('TIME')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">霸王餐</button>
+                    <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">獨自稱霸</button>
                 </div>
                 
+                <!-- 新增：電鰻效果設定 -->
+                <div id="setting-eel" class="flex flex-col items-center justify-center bg-black/40 p-2 md:p-3 rounded-lg border border-yellow-600/50 mb-3 shadow-[0_0_10px_rgba(250,204,21,0.1)]">
+                    <div class="flex items-center gap-3">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" id="chk-eel" class="sr-only peer">
+                          <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                        </label>
+                        <span id="lbl-eel" class="text-yellow-400 font-bold text-sm md:text-base tracking-wide flex items-center gap-1"><span class="text-lg">⚡</span> 電鰻效果 (暈眩)</span>
+                    </div>
+                    <div id="eel-time-config" class="flex items-center gap-2 mt-2 transition-all opacity-50 pointer-events-none">
+                        <span id="lbl-eel-time" class="text-gray-300 text-xs md:text-sm">暈眩秒數:</span>
+                        <input type="number" id="input-eel-time" value="3" min="1" max="10" class="w-16 bg-gray-800 text-yellow-400 font-space font-bold rounded px-2 py-1 border border-yellow-700 text-center text-sm md:text-base outline-none">
+                    </div>
+                </div>
+
                 <div id="setting-count" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700">
                     <span id="lbl-set-count" class="text-white font-bold text-sm md:text-base">設定題數:</span>
                     <input type="number" id="input-count" value="10" min="1" max="50" class="w-16 md:w-20 bg-gray-800 text-cyan-400 font-space font-bold rounded px-2 py-1 border border-cyan-700 text-center text-base md:text-lg outline-none">
@@ -306,14 +320,15 @@
                 btnStart: "開始作戰 / START", btnEnd: "結束遊戲", btnMenu: "返回主畫面",
                 p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "獨自稱霸 (單人模式)",
-                timeUp: "時間到！", countReached: "題數達成！",
+                timeUp: "時間到！", countReached: "題數達成！", missionComplete: "任務完成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
                 pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
                 dragHelp: "請將 θ 拖至正確角",
                 lblCor: "答對: ", lblQ: " 題", totalTime: "總答題時間: ", secs: " 秒",
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
                 timeLeft: (l) => `倒數計時: ${l} 秒`,
-                correctIs: "正確答案: ", hintTheta: "提示: θ 的對邊為 "
+                correctIs: "正確答案: ", hintTheta: "提示: θ 的對邊為 ",
+                eelTitle: "電鰻效果 (暈眩)", eelSecs: "暈眩秒數:", stun: "暈眩中"
             },
             en: {
                 modeCount: "Questions", modeTime: "Survival", modePrac: "Solo Mode",
@@ -321,14 +336,15 @@
                 btnStart: "START MISSION", btnEnd: "End Game", btnMenu: "Main Menu",
                 p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "Solo Mode (Time & Score)",
-                timeUp: "Time's up!", countReached: "Target reached!",
+                timeUp: "Time's up!", countReached: "Target reached!", missionComplete: "Mission Complete!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
                 pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
                 dragHelp: "Drag θ to the correct angle",
                 lblCor: "Correct: ", lblQ: "", totalTime: "Total Time: ", secs: " s",
                 prog: (c, m) => `Progress: ${c} / ${m}`,
                 timeLeft: (l) => `Time Left: ${l} s`,
-                correctIs: "Correct Answer: ", hintTheta: "Hint: Opp of θ is "
+                correctIs: "Correct Answer: ", hintTheta: "Hint: Opp of θ is ",
+                eelTitle: "Eel Effect (Stun)", eelSecs: "Stun Secs:", stun: "STUNNED"
             }
         };
 
@@ -347,6 +363,9 @@
             document.getElementById('lbl-set-personal').innerText = t.setPersonal;
             document.getElementById('btn-start').innerText = t.btnStart;
             
+            document.getElementById('lbl-eel').innerHTML = `<span class="text-lg">⚡</span> ${t.eelTitle}`;
+            document.getElementById('lbl-eel-time').innerText = t.eelSecs;
+
             document.getElementById('btn-end').innerText = t.btnEnd;
             document.getElementById('lbl-p1').innerText = t.p1Blue;
             document.getElementById('lbl-p2').innerText = t.p2Purple;
@@ -375,6 +394,9 @@
         let maxTime = 60;
         let maxPersonalTime = 30;
         
+        let eelEnabled = false;
+        let eelDuration = 3;
+
         let gameState = 'INIT'; 
         let startTime = 0;
         let mainTimer = null;
@@ -386,6 +408,16 @@
         let bgmParts = [];
         let currentTrackIdx = -1;
         let menuTrackIdx = -1;
+
+        // 電鰻效果開關UI事件
+        document.getElementById('chk-eel').addEventListener('change', function() {
+            const conf = document.getElementById('eel-time-config');
+            if(this.checked) {
+                conf.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                conf.classList.add('opacity-50', 'pointer-events-none');
+            }
+        });
         
         async function initAudioAndShowMenu() {
             if(isAudioInit) return;
@@ -428,7 +460,6 @@
             { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }
         ];
 
-        // Level 3 共用對邊的兩個直角三角形 (背對背)
         const doubleTriples = [
             { o: 12, a1: 5, h1: 13, a2: 9, h2: 15 },
             { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 },
@@ -445,7 +476,8 @@
         function createPlayer(id, color, prefix) {
             return {
                 id, color, prefix, score: 0, corrects: 0, wrongAttempts: 0,
-                qStart: 0, currentQ: null, isGenerating: false, dndState: {} 
+                qStart: 0, currentQ: null, isGenerating: false, dndState: {},
+                isStunned: false, stunEndTime: 0
             };
         }
 
@@ -467,13 +499,13 @@
             const sC = document.getElementById('setting-count');
             const sT = document.getElementById('setting-time');
             
-            [bC, bT, bP].forEach(b => b.className = "flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm");
+            [bC, bT, bP].forEach(b => b.className = "flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base");
             sC.classList.add('hidden'); sT.classList.add('hidden');
 
-            const activeClass = "flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm";
+            const activeClass = "flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base";
             if(mode === 'COUNT') { bC.className = activeClass; sC.classList.remove('hidden'); } 
             else if (mode === 'TIME') { bT.className = activeClass; sT.classList.remove('hidden'); } 
-            else { bP.className = activeClass; }
+            else { bP.className = activeClass; sC.classList.remove('hidden'); }
         }
 
         function showMenu() {
@@ -490,6 +522,9 @@
             maxCount = parseInt(document.getElementById('input-count').value) || 10;
             maxTime = parseInt(document.getElementById('input-time').value) || 60;
             maxPersonalTime = parseInt(document.getElementById('input-personal').value) || 30;
+            
+            eelEnabled = document.getElementById('chk-eel').checked;
+            eelDuration = parseInt(document.getElementById('input-eel-time').value) || 3;
             
             document.getElementById('mainMenu').classList.add('hidden');
             const countdownEl = document.getElementById('preGameCountdown');
@@ -515,14 +550,17 @@
                 document.body.classList.remove('practice-active');
             }
             
-            p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0;
-            p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0;
+            p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.isStunned = false;
+            p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0; p2.isStunned = false;
             p1ShipPos = 0; p2ShipPos = 0;
             globalQuestionsAnswered = 0;
             soloTotalTimeMs = 0;
             gameState = 'PLAYING';
             startTime = Date.now();
             lasers = []; particles = [];
+
+            // 清除殘留的電擊特效
+            document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
             let battleTrack = Math.floor(Math.random() * 4) + 1;
             playTrack(battleTrack);
@@ -547,20 +585,34 @@
                 const left = Math.max(0, maxTime - elapsed);
                 document.getElementById('gameInfoText').innerText = t.timeLeft(left);
                 if(left <= 0) forceEndGame(t.timeUp);
-            } else if (mode === 'COUNT') {
+            } else if (mode === 'COUNT' || mode === 'PRACTICE') {
                 document.getElementById('gameInfoText').innerText = t.prog(globalQuestionsAnswered, maxCount);
-                if(globalQuestionsAnswered >= maxCount) forceEndGame(t.countReached);
+                if(globalQuestionsAnswered >= maxCount) {
+                    forceEndGame(mode === 'PRACTICE' ? t.missionComplete : t.countReached);
+                }
             }
 
             [p1, p2].forEach(player => {
                 if(mode === 'PRACTICE' && player.id === 2) return; 
                 
+                // 電鰻效果解鎖判定
+                if (player.isStunned) {
+                    const left = Math.ceil((player.stunEndTime - Date.now()) / 1000);
+                    const txtEl = document.getElementById(`stun-text-${player.prefix}`);
+                    if (txtEl && left > 0) txtEl.innerText = `⚡ ${t.stun} ${left}s`;
+                    
+                    if (Date.now() >= player.stunEndTime) {
+                        player.isStunned = false;
+                        const overlay = document.getElementById(`stun-overlay-${player.prefix}`);
+                        if (overlay) overlay.remove();
+                    }
+                }
+
                 const workspace = document.getElementById(`${player.prefix}-workspace`);
-                if(!player.isGenerating && player.qStart > 0) {
+                if(!player.isGenerating && player.qStart > 0 && !player.isStunned) {
                     const elapsed = (Date.now() - player.qStart) / 1000;
                     const left = Math.max(0, maxPersonalTime - elapsed);
                     
-                    // 更新對戰模式和單人模式的計時條
                     document.getElementById(`timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
                     if(mode === 'PRACTICE') {
                         document.getElementById(`solo-timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
@@ -569,9 +621,7 @@
                     if(left <= 3 && left > 0) workspace.classList.add('crisis-alert');
                     else workspace.classList.remove('crisis-alert');
 
-                    if(left <= 0) {
-                        triggerWrongAnswer(player, true);
-                    }
+                    if(left <= 0) triggerWrongAnswer(player, true);
                 }
             });
         }
@@ -595,6 +645,27 @@
                 const t = i18n[currentLang];
                 setTimeout(() => forceEndGame(diff > 0 ? t.winP1 : t.winP2), 500);
             }
+        }
+
+        function applyStun(player) {
+            player.isStunned = true;
+            player.stunEndTime = Date.now() + eelDuration * 1000;
+            const ws = document.getElementById(`${player.prefix}-workspace`);
+            
+            let overlay = document.getElementById(`stun-overlay-${player.prefix}`);
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = `stun-overlay-${player.prefix}`;
+                // 使用 pointer-events-auto 完全攔截下方的點擊與拖曳
+                overlay.className = "absolute inset-0 bg-yellow-400/20 backdrop-blur-[3px] z-[60] flex flex-col items-center justify-center rounded-xl pointer-events-auto border-2 border-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.5)]";
+                ws.appendChild(overlay);
+            }
+            
+            const t = i18n[currentLang];
+            overlay.innerHTML = `
+                <div class="text-5xl md:text-6xl animate-bounce drop-shadow-[0_0_15px_#facc15]">⚡</div>
+                <div class="text-white font-bold font-space mt-2 bg-black/80 px-4 py-2 rounded-lg text-lg md:text-xl border border-yellow-500 shadow-[0_0_10px_#facc15]" id="stun-text-${player.prefix}">⚡ ${t.stun} ${eelDuration}s</div>
+            `;
         }
 
         function triggerCorrectAnswer(player) {
@@ -632,11 +703,10 @@
                 if (isTimeout) {
                     player.isGenerating = true;
                     document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-                    showSoloFeedback(player, false, true); // 時間到直接出對話框
+                    showSoloFeedback(player, false, true); 
                     return;
                 }
                 
-                // 答錯扣 20 分
                 player.score = Math.max(0, player.score - 20);
                 updateHeaderUI();
 
@@ -646,12 +716,11 @@
                 setTimeout(() => ws.classList.remove('shake-err'), 300);
 
                 if (player.wrongAttempts >= 2 || difficulty >= 2) {
-                    // Level 2/3 或兩次錯誤，直接出解答
                     player.isGenerating = true; 
                     showSoloFeedback(player, false, false); 
                 } else {
-                    // Level 1 第 1 次錯誤，僅震動，重設選項讓玩家重試
                     if (difficulty === 1) {
+                        if (eelEnabled) applyStun(player); // 難度一第一次錯誤直接鎖定版面
                         player.dndState = {};
                         setTimeout(() => renderLevel1Workspace(player), 300);
                     }
@@ -670,6 +739,8 @@
             ws.classList.add('shake-err');
             setTimeout(() => ws.classList.remove('shake-err'), 300);
 
+            if (eelEnabled && !isTimeout) applyStun(player);
+
             if(difficulty === 2 || difficulty === 3) {
                 setTimeout(() => generateQuestion(player), 400);
             } else {
@@ -677,7 +748,7 @@
                     setTimeout(() => generateQuestion(player), 400);
                 } else {
                     setTimeout(() => {
-                        player.dndState = {}; // 選項歸回原位，讓玩家再次挑戰
+                        player.dndState = {}; 
                         renderLevel1Workspace(player);
                         player.isGenerating = false;
                     }, 300);
@@ -702,7 +773,6 @@
             const t = i18n[currentLang];
             overlay.id = `practice-overlay-${player.prefix}`;
             
-            // 固定在左側垂直置中
             overlay.className = "fixed top-1/2 left-2 md:left-[5vw] transform -translate-y-1/2 bg-gray-900/95 p-4 md:p-6 rounded-2xl border-2 shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col items-center justify-center min-w-[200px] md:min-w-[300px] pointer-events-auto backdrop-blur-md";
             
             if(isCorrect) {
@@ -711,12 +781,10 @@
             } else {
                 overlay.style.borderColor = "#ef4444";
                 
-                // 產生正確答案字串，並處理漂亮的分數排版
                 let correctStr = "";
                 const q = player.currentQ;
                 
                 let displayAns = q.answer;
-                // 如果答案字串中包含 '/' 且是數字，轉換成直式分數
                 if (typeof displayAns === 'string' && displayAns.includes('/')) {
                     const parts = displayAns.split('/');
                     if (!isNaN(parts[0]) && !isNaN(parts[1])) {
@@ -737,8 +805,38 @@
                 overlay.innerHTML = `
                     <div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${titleStr}</div>
                     <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full flex items-center justify-center">${correctStr}</div>
-                    <button onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
+                    <button id="solo-next-btn-${player.id}" onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
                 `;
+
+                // 單人模式的電鰻鎖定特效 (排除時間到的情況)
+                if (eelEnabled && !isTimeout) {
+                    setTimeout(() => {
+                        const nextBtn = document.getElementById(`solo-next-btn-${player.id}`);
+                        if(nextBtn) {
+                            nextBtn.disabled = true;
+                            nextBtn.classList.remove('hover:bg-red-500');
+                            nextBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
+                            let left = eelDuration;
+                            nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`;
+                            
+                            const eelIntv = setInterval(() => {
+                                left--;
+                                if (left <= 0) {
+                                    clearInterval(eelIntv);
+                                    if(nextBtn) {
+                                        nextBtn.disabled = false;
+                                        nextBtn.classList.add('hover:bg-red-500');
+                                        nextBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
+                                        nextBtn.innerHTML = `▶ ${t.btnNext}`;
+                                    }
+                                } else if (nextBtn) {
+                                    nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`;
+                                }
+                            }, 1000);
+                            overlay.dataset.eelIntv = eelIntv;
+                        }
+                    }, 0);
+                }
             }
             
             document.body.appendChild(overlay);
@@ -747,8 +845,10 @@
         function nextSoloQ(pid) {
             let player = pid === 1 ? p1 : p2;
             const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
-            if(overlay) overlay.remove();
-            
+            if(overlay) {
+                if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv));
+                overlay.remove();
+            }
             generateQuestion(player);
         }
 
@@ -778,8 +878,11 @@
             clearInterval(mainTimer);
             document.getElementById('gameUI').classList.add('hidden');
             
-            // 清除所有的對話框
-            document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => el.remove());
+            document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => {
+                if(el.dataset.eelIntv) clearInterval(parseInt(el.dataset.eelIntv));
+                el.remove();
+            });
+            document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
             const endScr = document.getElementById('endScreen');
             endScr.classList.remove('hidden');
@@ -803,7 +906,7 @@
                 if (p1.score > p2.score) finalReason = t.winP1;
                 else if (p2.score > p1.score) finalReason = t.winP2;
                 else finalReason = t.draw;
-                if (mode === 'PRACTICE') finalReason = "Mission Complete";
+                if (mode === 'PRACTICE') finalReason = t.missionComplete;
             }
             document.getElementById('endTitle').innerText = finalReason;
 
@@ -854,7 +957,6 @@
             q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
             q.correctDen = func === 'tan' ? a : h;
 
-            // Level 3 邏輯 (複合三角形)
             if (difficulty === 3) {
                 const pair = doubleTriples[Math.floor(Math.random() * doubleTriples.length)];
                 const swapLR = Math.random() > 0.5;
@@ -867,11 +969,10 @@
                 q.math = { o: comm_o, a1, h1, a2, h2 };
                 q.isComposite = true;
                 
-                // 目標角可能在左側或右側
                 q.targetAngle = Math.random() > 0.5 ? 'left' : 'right';
                 const angleChar = q.targetAngle === 'left' ? 'α' : 'β';
 
-                q.type = Math.floor(Math.random() * 3) + 6; // 6: 求比例, 7: 求角度, 8: 求未知邊
+                q.type = Math.floor(Math.random() * 3) + 6; 
                 
                 if (q.type === 6) {
                     q.labels = { o: comm_o, a1, h1, a2, h2 };
@@ -910,7 +1011,6 @@
                     q.options = opts.sort(() => Math.random() - 0.5);
                     q.prompt = `${angleChar} = ?`;
                 } else if (q.type === 8) {
-                    // Type 8: 給定一側的角度比例，求另一側的未知邊 x
                     q.func = funcs[Math.floor(Math.random() * funcs.length)];
                     let givenRatio = "";
                     let sideToShow = "";
@@ -961,7 +1061,6 @@
                 return;
             }
 
-            // Level 2 邏輯
             if(difficulty === 2) {
                 q.type = Math.floor(Math.random() * 5) + 1; 
             } else {
@@ -1007,8 +1106,8 @@
         }
 
         function getSVG(o, a, h, config) {
-            const size = 300; 
-            const pad = 70; // 從 80 縮小為 70，使內部圖形放大約 5%
+            const size = 350; 
+            const pad = 80; 
             
             let mockO = typeof o === 'string' ? 5 : o;
             let mockA = typeof a === 'string' ? 5 : a;
@@ -1055,13 +1154,12 @@
                     const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
                     const dx = midX - cx; const dy = midY - cy;
                     const len = Math.hypot(dx, dy) || 1;
-                    return {x: midX + (dx/len)*20, y: midY + (dy/len)*20}; // 偏移量從 18 增加到 20，避免重疊
+                    return {x: midX + (dx/len)*20, y: midY + (dy/len)*20}; 
                 }
                 const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
                 const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
                 const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
 
-                // 強制純白文字，並增加文字陰影避免與背景光效混淆
                 const textStyle = `fill="#ffffff" font-size="17" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;"`;
                 
                 svg += `<text x="${posA.x}" y="${posA.y + 6}" ${textStyle}>${a}</text>`;
@@ -1084,10 +1182,9 @@
             return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
         }
 
-        // Level 3 雙三角形繪製
         function getCompositeSVG(q, config) {
-            const size = 300;
-            const pad = 50; // 邊距縮小，使雙三角形更大
+            const size = 350;
+            const pad = 75; 
             const totalW = q.math.a1 + q.math.a2;
             const maxW = size - pad * 2;
             const maxH = size - pad * 2;
@@ -1097,7 +1194,7 @@
             const drawA2 = q.math.a2 * scale;
             const drawO = q.math.o * scale;
 
-            const cx = size / 2 + (drawA1 - drawA2) / 2; // 置中平衡
+            const cx = size / 2 + (drawA1 - drawA2) / 2; 
             const cy = size - pad + 20;
 
             const pTop = { x: cx, y: cy - drawO };
@@ -1107,31 +1204,26 @@
 
             let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
             
-            // 旋轉中心與角度
             const rot = config.rotation || 0;
             const rotCx = size / 2;
             const rotCy = size / 2;
 
             svg += `<g transform="rotate(${rot}, ${rotCx}, ${rotCy})">`;
 
-            // 畫左右三角形
             svg += `<polygon points="${pLeft.x},${pLeft.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.02)"/>`;
             svg += `<polygon points="${pRight.x},${pRight.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.05)"/>`;
 
             const { labels, targetAngle } = q;
 
-            // 共用對邊虛線
             if (labels.o || labels.o === 'x') {
                 svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
             } else {
                 svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
             }
 
-            // 直角標示
             svg += `<polyline points="${pBot.x-10},${pBot.y} ${pBot.x-10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
             svg += `<polyline points="${pBot.x+10},${pBot.y} ${pBot.x+10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
 
-            // 目標角弧線繪製
             const arcR = 25;
             if (targetAngle === 'left' || targetAngle === 'both') {
                 const aRad1 = Math.atan2(drawO, drawA1);
@@ -1149,7 +1241,6 @@
 
             svg += `</g>`;
 
-            // --- 文字標籤工具 (在旋轉群組外，確保文字正立) ---
             function getRotatedTextPos(x, y) {
                 const rad = rot * Math.PI / 180;
                 const nx = Math.cos(rad)*(x-rotCx) - Math.sin(rad)*(y-rotCy) + rotCx;
@@ -1164,7 +1255,6 @@
                 return `<text x="${pos.x}" y="${pos.y+6}" fill="${color}" font-size="${size}" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;">${text}</text>`;
             };
 
-            // 自動計算外推法向量並決定旋轉後的文字位置
             const textOffset = (p1, p2, offset, swap) => {
                 const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2;
                 const vx = p2.x - p1.x; const vy = p2.y - p1.y; 
@@ -1175,14 +1265,12 @@
                 return {x: rotP.x, y: rotP.y};
             }
 
-            // 繪製外圍邊長
             if(labels.h1) svg += drawLabel(textOffset(pLeft, pTop, 22, true), labels.h1, labels.h1==='x');
             if(labels.a1) svg += drawLabel(textOffset(pLeft, pBot, 22, false), labels.a1, labels.a1==='x');
             if(labels.h2) svg += drawLabel(textOffset(pRight, pTop, 22, false), labels.h2, labels.h2==='x');
             if(labels.a2) svg += drawLabel(textOffset(pBot, pRight, 22, false), labels.a2, labels.a2==='x');
             if(labels.o || labels.o === 'x') svg += drawLabel(textOffset(pBot, pTop, 22, true), labels.o, labels.o==='x');
 
-            // 繪製目標角名稱 α / β
             if (targetAngle === 'left' || targetAngle === 'both') {
                 const pos = getRotatedTextPos(pLeft.x + 38, pLeft.y - 12);
                 svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">α</text>`;
@@ -1216,7 +1304,13 @@
                     } else { btn.innerHTML = opt; }
                 } else { btn.innerHTML = opt; }
                 
-                btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onpointerdown = (e) => {
+                    e.preventDefault();
+                    if (btn.dataset.clicked) return; 
+                    btn.dataset.clicked = "true";
+                    if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
+                };
+                btn.onclick = (e) => e.preventDefault(); 
                 inter.appendChild(btn);
             });
         }
@@ -1242,7 +1336,13 @@
                     } else { btn.innerHTML = opt; }
                 } else { btn.innerHTML = opt; }
                 
-                btn.onclick = () => { if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onpointerdown = (e) => {
+                    e.preventDefault();
+                    if (btn.dataset.clicked) return;
+                    btn.dataset.clicked = "true";
+                    if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
+                };
+                btn.onclick = (e) => e.preventDefault(); 
                 inter.appendChild(btn);
             });
         }
@@ -1253,12 +1353,12 @@
             const svgEl = document.getElementById(`${player.prefix}-svg-container`);
             const interEl = document.getElementById(`${player.prefix}-interaction`);
             
-            interEl.className = "h-12 md:h-16 flex items-center justify-center gap-2 md:gap-3";
+            interEl.className = "h-14 md:h-16 flex items-center justify-center gap-2 md:gap-3";
             let svgHtml = '';
             
             if(q.type === 1) { 
-                const dzNum = `<div class="drop-zone w-10 h-8 md:w-12 md:h-10 ${player.dndState.num ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="num" data-pid="${player.id}">${player.dndState.num || '?'}</div>`;
-                const dzDen = `<div class="drop-zone w-10 h-8 md:w-12 md:h-10 ${player.dndState.den ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="den" data-pid="${player.id}">${player.dndState.den || '?'}</div>`;
+                const dzNum = `<div class="drop-zone w-12 h-10 md:w-12 md:h-10 ${player.dndState.num ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="num" data-pid="${player.id}">${player.dndState.num || '?'}</div>`;
+                const dzDen = `<div class="drop-zone w-12 h-10 md:w-12 md:h-10 ${player.dndState.den ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="den" data-pid="${player.id}">${player.dndState.den || '?'}</div>`;
                 promptEl.innerHTML = `<div class="flex items-center"><span class="text-xl md:text-2xl font-space mr-2">${q.func}(θ) = </span><div class="flex flex-col items-center gap-1"><div class="relative">${dzNum}</div><div class="w-full h-1 bg-white rounded"></div><div class="relative">${dzDen}</div></div></div>`;
 
                 svgHtml = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
@@ -1267,11 +1367,11 @@
                 interEl.innerHTML = '';
                 [q.math.o, q.math.a, q.math.h].sort((a,b)=>String(a).localeCompare(String(b))).forEach(val => {
                     const isHidden = (player.dndState.num == val || player.dndState.den == val) ? 'opacity-0 pointer-events-none' : '';
-                    interEl.innerHTML += `<div class="draggable w-10 h-8 md:w-12 md:h-10 text-base md:text-xl font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
+                    interEl.innerHTML += `<div class="draggable w-12 h-10 md:w-12 md:h-10 text-base md:text-xl font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
                 });
 
             } else if (q.type === 2) { 
-                const dzFunc = `<div class="drop-zone w-12 h-8 md:w-16 md:h-10 mx-1 font-space text-base md:text-lg bg-gray-800 ${player.dndState.func ? 'filled' : ''}" data-target="func" data-pid="${player.id}">${player.dndState.func || '?'}</div>`;
+                const dzFunc = `<div class="drop-zone w-14 h-10 md:w-16 md:h-10 mx-1 font-space text-base md:text-lg bg-gray-800 ${player.dndState.func ? 'filled' : ''}" data-target="func" data-pid="${player.id}">${player.dndState.func || '?'}</div>`;
                 promptEl.innerHTML = `<div class="flex items-center text-lg md:text-2xl font-space">${dzFunc} (θ) = <div class="inline-flex flex-col items-center leading-none mx-2 text-base md:text-xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${q.correctNum}</span><span class="px-2 pt-[3px]">${q.correctDen}</span></div></div>`;
 
                 svgHtml = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
@@ -1280,7 +1380,7 @@
                 interEl.innerHTML = '';
                 ['sin', 'cos', 'tan'].forEach(val => {
                     const isHidden = (player.dndState.func == val) ? 'opacity-0 pointer-events-none' : '';
-                    interEl.innerHTML += `<div class="draggable w-14 h-8 md:w-16 md:h-10 text-sm md:text-lg font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
+                    interEl.innerHTML += `<div class="draggable w-16 h-10 md:w-16 md:h-10 text-base md:text-lg font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
                 });
 
             } else if (q.type === 3) { 
@@ -1298,17 +1398,17 @@
                     const blX = offsetX + svgData.coords.bl.x * scale; const blY = offsetY + svgData.coords.bl.y * scale;
                     const trX = offsetX + svgData.coords.tr.x * scale; const trY = offsetY + svgData.coords.tr.y * scale;
 
-                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12 ${player.dndState.angle === 'angle_bottom' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${blX-20}px; top:${blY-20}px" data-target="angle_bottom" data-pid="${player.id}">${player.dndState.angle === 'angle_bottom' ? 'θ' : ''}</div>`;
-                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-10 h-10 md:w-12 md:h-12 ${player.dndState.angle === 'angle_top' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${trX-20}px; top:${trY-20}px" data-target="angle_top" data-pid="${player.id}">${player.dndState.angle === 'angle_top' ? 'θ' : ''}</div>`;
+                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-12 h-12 md:w-12 md:h-12 ${player.dndState.angle === 'angle_bottom' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${blX-24}px; top:${blY-24}px" data-target="angle_bottom" data-pid="${player.id}">${player.dndState.angle === 'angle_bottom' ? 'θ' : ''}</div>`;
+                    svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-12 h-12 md:w-12 md:h-12 ${player.dndState.angle === 'angle_top' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${trX-24}px; top:${trY-24}px" data-target="angle_top" data-pid="${player.id}">${player.dndState.angle === 'angle_top' ? 'θ' : ''}</div>`;
                 }, 10);
 
                 const isHidden = player.dndState.angle ? 'opacity-0 pointer-events-none' : '';
-                interEl.innerHTML = `<div class="draggable w-10 h-10 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)] ${isHidden}" data-val="theta" data-pid="${player.id}">θ</div>`;
+                interEl.innerHTML = `<div class="draggable w-12 h-12 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)] ${isHidden}" data-val="theta" data-pid="${player.id}">θ</div>`;
             }
             setTimeout(() => attachDragListeners(player), 50);
         }
 
-        let activeDrag = null; let ghostEl = null;
+        let activeDrags = {}; 
 
         function attachDragListeners(player) {
             const draggables = document.querySelectorAll(`.draggable[data-pid="${player.id}"]`);
@@ -1316,39 +1416,64 @@
         }
 
         function handleDragStart(e) {
-            e.preventDefault(); if(activeDrag) return;
+            e.preventDefault();
             const el = e.currentTarget;
-            activeDrag = { element: el, val: el.getAttribute('data-val'), pid: parseInt(el.getAttribute('data-pid')) };
+            if(el.style.opacity === '0.3' || activeDrags[e.pointerId]) return;
 
-            ghostEl = el.cloneNode(true); ghostEl.classList.add('ghost-drag');
-            ghostEl.style.left = `${e.clientX - el.offsetWidth/2}px`; ghostEl.style.top = `${e.clientY - el.offsetHeight/2}px`;
-            document.body.appendChild(ghostEl);
+            const ghost = el.cloneNode(true); 
+            ghost.classList.add('ghost-drag');
+            ghost.style.left = `${e.clientX - el.offsetWidth/2}px`; 
+            ghost.style.top = `${e.clientY - el.offsetHeight/2}px`;
+            document.body.appendChild(ghost);
+            
             el.style.opacity = '0.3';
             
-            document.addEventListener('pointermove', handleDragMove, {passive: false});
-            document.addEventListener('pointerup', handleDragEnd);
+            activeDrags[e.pointerId] = {
+                element: el,
+                val: el.getAttribute('data-val'),
+                pid: parseInt(el.getAttribute('data-pid')),
+                ghostEl: ghost
+            };
+            
+            el.setPointerCapture(e.pointerId);
+            el.addEventListener('pointermove', handleDragMove);
+            el.addEventListener('pointerup', handleDragEnd);
+            el.addEventListener('pointercancel', handleDragEnd);
         }
 
         function handleDragMove(e) {
-            e.preventDefault(); if(!ghostEl) return;
-            ghostEl.style.left = `${e.clientX - ghostEl.offsetWidth/2}px`; ghostEl.style.top = `${e.clientY - ghostEl.offsetHeight/2}px`;
+            e.preventDefault();
+            const drag = activeDrags[e.pointerId];
+            if(!drag || !drag.ghostEl) return;
+            drag.ghostEl.style.left = `${e.clientX - drag.ghostEl.offsetWidth/2}px`; 
+            drag.ghostEl.style.top = `${e.clientY - drag.ghostEl.offsetHeight/2}px`;
         }
 
         function handleDragEnd(e) {
-            document.removeEventListener('pointermove', handleDragMove);
-            document.removeEventListener('pointerup', handleDragEnd);
-            if(!activeDrag || !ghostEl) return;
-
-            ghostEl.style.visibility = 'hidden'; 
-            const elements = document.elementsFromPoint(e.clientX, e.clientY);
-            let dropZone = elements.find(el => el.classList.contains('drop-zone') && parseInt(el.getAttribute('data-pid')) === activeDrag.pid);
+            const el = e.currentTarget;
+            el.removeEventListener('pointermove', handleDragMove);
+            el.removeEventListener('pointerup', handleDragEnd);
+            el.removeEventListener('pointercancel', handleDragEnd);
+            el.releasePointerCapture(e.pointerId);
             
-            const player = activeDrag.pid === 1 ? p1 : p2; const val = activeDrag.val;
+            const drag = activeDrags[e.pointerId];
+            if(!drag) return;
 
-            if (dropZone) processDrop(player, val, dropZone.getAttribute('data-target'));
-            else activeDrag.element.style.opacity = '1';
+            drag.ghostEl.style.visibility = 'hidden'; 
+            const elements = document.elementsFromPoint(e.clientX, e.clientY) || [];
+            let dropZone = Array.from(elements).find(target => target.classList && target.classList.contains('drop-zone') && parseInt(target.getAttribute('data-pid')) === drag.pid);
+            
+            const player = drag.pid === 1 ? p1 : p2; 
+            const val = drag.val;
 
-            ghostEl.remove(); ghostEl = null; activeDrag = null;
+            if (dropZone) {
+                processDrop(player, val, dropZone.getAttribute('data-target'));
+            } else {
+                drag.element.style.opacity = '1';
+            }
+
+            drag.ghostEl.remove(); 
+            delete activeDrags[e.pointerId];
         }
 
         function processDrop(player, val, target) {
