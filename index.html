@@ -540,6 +540,23 @@
             }, 1000);
         }
 
+        // --- 強制清理幽靈拖曳垃圾的機制 ---
+        let activeDrags = {}; 
+
+        function cleanupDrags(pid) {
+            // 1. 清除 JS 記錄的拖曳狀態與其對應的 DOM ghost
+            for (let pointerId in activeDrags) {
+                if (activeDrags[pointerId].pid === pid) {
+                    if (activeDrags[pointerId].ghostEl) {
+                        activeDrags[pointerId].ghostEl.remove();
+                    }
+                    delete activeDrags[pointerId];
+                }
+            }
+            // 2. 雙重保險：強制消滅整個 document 裡面所有殘留的該玩家幽靈元素
+            document.querySelectorAll(`.ghost-drag[data-pid="${pid}"]`).forEach(el => el.remove());
+        }
+
         function actualGameStart() {
             document.getElementById('gameUI').classList.remove('hidden');
             
@@ -559,7 +576,10 @@
             startTime = Date.now();
             lasers = []; particles = [];
 
-            // 清除殘留的電擊特效
+            // 遊戲開始前，徹底清除全域殘留
+            document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
+            activeDrags = {};
+
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
             let battleTrack = Math.floor(Math.random() * 4) + 1;
@@ -595,7 +615,6 @@
             [p1, p2].forEach(player => {
                 if(mode === 'PRACTICE' && player.id === 2) return; 
                 
-                // 電鰻效果解鎖判定
                 if (player.isStunned) {
                     const left = Math.ceil((player.stunEndTime - Date.now()) / 1000);
                     const txtEl = document.getElementById(`stun-text-${player.prefix}`);
@@ -656,7 +675,6 @@
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = `stun-overlay-${player.prefix}`;
-                // 使用 pointer-events-auto 完全攔截下方的點擊與拖曳
                 overlay.className = "absolute inset-0 bg-yellow-400/20 backdrop-blur-[3px] z-[60] flex flex-col items-center justify-center rounded-xl pointer-events-auto border-2 border-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.5)]";
                 ws.appendChild(overlay);
             }
@@ -720,8 +738,10 @@
                     showSoloFeedback(player, false, false); 
                 } else {
                     if (difficulty === 1) {
-                        if (eelEnabled) applyStun(player); // 難度一第一次錯誤直接鎖定版面
+                        if (eelEnabled) applyStun(player);
                         player.dndState = {};
+                        // 修改：在即將重新渲染前清理，防止重疊延遲導致卡死
+                        cleanupDrags(player.id); 
                         setTimeout(() => renderLevel1Workspace(player), 300);
                     }
                 }
@@ -749,6 +769,7 @@
                 } else {
                     setTimeout(() => {
                         player.dndState = {}; 
+                        cleanupDrags(player.id);
                         renderLevel1Workspace(player);
                         player.isGenerating = false;
                     }, 300);
@@ -808,7 +829,6 @@
                     <button id="solo-next-btn-${player.id}" onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
                 `;
 
-                // 單人模式的電鰻鎖定特效 (排除時間到的情況)
                 if (eelEnabled && !isTimeout) {
                     setTimeout(() => {
                         const nextBtn = document.getElementById(`solo-next-btn-${player.id}`);
@@ -884,6 +904,10 @@
             });
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
+            // 確保遊戲結束時徹底消除全域殘留
+            document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
+            activeDrags = {};
+
             const endScr = document.getElementById('endScreen');
             endScr.classList.remove('hidden');
             
@@ -929,6 +953,8 @@
         }
 
         function generateQuestion(player) {
+            cleanupDrags(player.id); // 換題前強制除靈
+
             player.qStart = Date.now();
             player.isGenerating = false;
             player.dndState = {};
@@ -1348,6 +1374,7 @@
         }
 
         function renderLevel1Workspace(player) {
+            cleanupDrags(player.id); // 重新渲染區塊前，徹底清除過往拖曳殘留
             const q = player.currentQ;
             const promptEl = document.getElementById(`${player.prefix}-prompt`);
             const svgEl = document.getElementById(`${player.prefix}-svg-container`);
@@ -1408,8 +1435,6 @@
             setTimeout(() => attachDragListeners(player), 50);
         }
 
-        let activeDrags = {}; 
-
         function attachDragListeners(player) {
             const draggables = document.querySelectorAll(`.draggable[data-pid="${player.id}"]`);
             draggables.forEach(el => { el.addEventListener('pointerdown', handleDragStart); });
@@ -1454,10 +1479,17 @@
             el.removeEventListener('pointermove', handleDragMove);
             el.removeEventListener('pointerup', handleDragEnd);
             el.removeEventListener('pointercancel', handleDragEnd);
-            el.releasePointerCapture(e.pointerId);
+            
+            // 加入安全保護：若元素已因時間到等因素消失，防止捕捉拋出錯誤卡死系統
+            try { 
+                if (el.hasPointerCapture(e.pointerId)) {
+                    el.releasePointerCapture(e.pointerId); 
+                }
+            } catch(err) {} 
             
             const drag = activeDrags[e.pointerId];
-            if(!drag) return;
+            // 若該拖曳任務已被 cleanupDrags 回收，直接中斷執行
+            if(!drag) return; 
 
             drag.ghostEl.style.visibility = 'hidden'; 
             const elements = document.elementsFromPoint(e.clientX, e.clientY) || [];
@@ -1472,7 +1504,10 @@
                 drag.element.style.opacity = '1';
             }
 
-            drag.ghostEl.remove(); 
+            // 安全移除幽靈元素
+            if (drag.ghostEl && drag.ghostEl.parentNode) {
+                drag.ghostEl.remove(); 
+            }
             delete activeDrags[e.pointerId];
         }
 
