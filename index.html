@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>宇宙三角防衛戰 - Trigowar</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@400;700&display=swap');
 
@@ -404,10 +403,17 @@
         let soloTotalTimeMs = 0;
 
         let isAudioInit = false;
-        let bgmSynths = [];
-        let bgmParts = [];
-        let currentTrackIdx = -1;
+        const audioFiles = [
+            'pipe_organ.mp3',
+            'space_metal.mp3',
+            'war.mp3',
+            'war2.mp3',
+            'trigosong.mp3'
+        ];
+        let menuAudio = null;
+        let battleAudio = null;
         let menuTrackIdx = -1;
+        let battleTrackIdx = -1;
 
         // 電鰻效果開關UI事件
         document.getElementById('chk-eel').addEventListener('change', function() {
@@ -421,38 +427,46 @@
         
         async function initAudioAndShowMenu() {
             if(isAudioInit) return;
-            await Tone.start();
-            Tone.Transport.bpm.value = 110;
             
-            const synth0 = new Tone.PolySynth(Tone.Synth).toDestination(); synth0.volume.value = -18;
-            const part0 = new Tone.Sequence((time, note) => { synth0.triggerAttackRelease(note, "2n", time); }, ["C4", "E4", "G4", "B3", "C4", "A3", "F3", "G3"], "2n");
+            menuTrackIdx = Math.floor(Math.random() * audioFiles.length);
+            menuAudio = new Audio(audioFiles[menuTrackIdx]);
+            menuAudio.loop = true;
+            menuAudio.volume = 0.5;
             
-            const synth1 = new Tone.Synth({oscillator: {type: "square"}}).toDestination(); synth1.volume.value = -20;
-            const part1 = new Tone.Sequence((time, note) => { synth1.triggerAttackRelease(note, "16n", time); }, ["C3", "G3", "C4", "E4", "G4", "E4", "C4", "G3"], "8n");
-            
-            const synth2 = new Tone.FMSynth().toDestination(); synth2.volume.value = -18;
-            const part2 = new Tone.Sequence((time, note) => { synth2.triggerAttackRelease(note, "8n", time); }, ["C2", "C2", "D#2", "F2", "C2", "C2", "G2", "F2"], "4n");
-            
-            const synth3 = new Tone.AMSynth().toDestination(); synth3.volume.value = -18;
-            const part3 = new Tone.Sequence((time, note) => { synth3.triggerAttackRelease(note, "16n", time); }, ["G4", null, "D5", null, "C5", "B4", "A4", "G4"], "8n");
-
-            const synth4 = new Tone.Synth({oscillator: {type: "triangle"}}).toDestination(); synth4.volume.value = -16;
-            const part4 = new Tone.Sequence((time, note) => { synth4.triggerAttackRelease(note, "16n", time); }, ["E4", "B4", "E5", "B4", "G4", "B4", "D5", "B4"], "8n");
-
-            bgmSynths = [synth0, synth1, synth2, synth3, synth4];
-            bgmParts = [part0, part1, part2, part3, part4];
+            try {
+                await menuAudio.play();
+            } catch(err) {
+                console.log("Audio play prevented:", err);
+            }
             
             isAudioInit = true;
             document.getElementById('audio-init-overlay').classList.add('hidden');
             showMenu();
         }
 
-        function playTrack(idx) {
+        function playBattleMusic() {
             if(!isAudioInit) return;
-            if(currentTrackIdx !== -1) bgmParts[currentTrackIdx].stop();
-            currentTrackIdx = idx;
-            bgmParts[idx].start(0);
-            Tone.Transport.start();
+            if(battleAudio) {
+                battleAudio.pause();
+                battleAudio.currentTime = 0;
+            }
+            if(menuAudio) menuAudio.pause();
+            
+            // 確保戰鬥音樂不會和主選單音樂重複
+            do {
+                battleTrackIdx = Math.floor(Math.random() * audioFiles.length);
+            } while(battleTrackIdx === menuTrackIdx);
+            
+            battleAudio = new Audio(audioFiles[battleTrackIdx]);
+            battleAudio.loop = true;
+            battleAudio.volume = 0.5;
+            battleAudio.play().catch(e => console.log("Audio play error:", e));
+        }
+
+        function playMenuMusic() {
+            if(!isAudioInit) return;
+            if(battleAudio) battleAudio.pause();
+            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
         }
 
         const pythagoreanTriples = [
@@ -514,8 +528,7 @@
             document.getElementById('gameUI').classList.add('hidden');
             gameState = 'MENU';
             
-            if(menuTrackIdx === -1) menuTrackIdx = Math.floor(Math.random() * 5);
-            playTrack(menuTrackIdx);
+            playMenuMusic();
         }
 
         function startPreGameCountdown() {
@@ -582,8 +595,7 @@
 
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
-            let battleTrack = Math.floor(Math.random() * 4) + 1;
-            playTrack(battleTrack);
+            playBattleMusic();
 
             updateHeaderUI(); 
             if(mode !== 'PRACTICE') updateHealthBar();
@@ -911,8 +923,7 @@
             const endScr = document.getElementById('endScreen');
             endScr.classList.remove('hidden');
             
-            if(currentTrackIdx !== -1) bgmParts[currentTrackIdx].stop();
-            if(menuTrackIdx !== -1) playTrack(menuTrackIdx);
+            playMenuMusic();
 
             if(mode === 'PRACTICE') {
                 document.getElementById('p2-res-box').classList.add('hidden');
