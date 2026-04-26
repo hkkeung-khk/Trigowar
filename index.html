@@ -20,8 +20,8 @@
         .neon-p1 { box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); border: 1px solid rgba(0, 255, 255, 0.4); }
         .neon-p2 { box-shadow: 0 0 10px rgba(192, 132, 252, 0.3); border: 1px solid rgba(192, 132, 252, 0.4); }
 
-        /* 確保選單與排行榜區塊可以正常滑動 (覆蓋 body 的 touch-action: none) */
-        #mainMenu, #endScreen, .overflow-y-auto {
+        /* 確保選單與排行榜區塊可以正常滑動 */
+        #mainMenu, #endScreen, #audio-init-overlay, .overflow-y-auto {
             touch-action: auto !important; 
             -webkit-overflow-scrolling: touch;
         }
@@ -81,14 +81,12 @@
         .svg-tri polygon { fill: rgba(255,255,255,0.05); stroke-width: 2; stroke-linejoin: round; }
         .p1-color { stroke: #0ff; } .p2-color { stroke: #c084fc; }
         
-        /* Level 3 專用顏色 */
         .svg-tri.p1-color[fill*="0.05"] { fill: rgba(0, 255, 255, 0.15) !important; }
         .svg-tri.p2-color[fill*="0.05"] { fill: rgba(192, 132, 252, 0.15) !important; }
 
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-        /* 分數浮動動畫 */
         .score-float {
             position: fixed;
             font-weight: 900;
@@ -103,72 +101,57 @@
             100% { opacity: 0; transform: translateY(-40px) scale(1); }
         }
 
-        /* =========================================
-           獨自稱霸/榜首之爭 (單人) 模式專屬 CSS 排版
-        ========================================= */
+        /* 獨自稱霸/榜首之爭 (單人) 模式專屬 CSS 排版 */
         body.practice-active #p2-area,
         body.practice-active #battle-spacer,
         body.practice-active #top-bar-scores .health-bar-container,
         body.practice-active #lbl-p2,
-        body.practice-active #p2-score {
-            display: none !important;
-        }
-        body.practice-active #top-bar-scores {
-            justify-content: center;
-        }
-        body.practice-active #p1-area {
-            flex: none !important;
-            width: 100% !important;
-            max-width: 650px !important;
-            margin: 0 auto !important; 
-            justify-content: center !important;
-            align-items: center !important; 
-        }
-        body.practice-active #p1-area > .bg-gray-800 {
-            display: none !important; 
-        }
-        body.practice-active #p1-workspace {
-            transform-origin: center center;
-            max-height: 70vh !important;
-            height: auto;
-            border-width: 2px;
-            width: 100%;
-            padding-top: 1.5rem !important;
-        }
-        .solo-timer-container {
-            display: none;
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 12px;
-            background: #1f2937;
-            border-radius: 12px 12px 0 0;
-            overflow: hidden;
-            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
-        }
-        body.practice-active .solo-timer-container {
-            display: block;
-        }
-        body.practice-active #p1-svg-container {
-            min-height: 25vh;
-            flex-shrink: 1;
-        }
-        body.practice-active #p1-svg-container svg {
-            transform: scale(1); 
-            max-width: 100%;
-            max-height: 100%;
-            overflow: visible; 
-        }
+        body.practice-active #p2-score { display: none !important; }
+        body.practice-active #top-bar-scores { justify-content: center; }
+        body.practice-active #p1-area { flex: none !important; width: 100% !important; max-width: 650px !important; margin: 0 auto !important; justify-content: center !important; align-items: center !important; }
+        body.practice-active #p1-area > .bg-gray-800 { display: none !important; }
+        body.practice-active #p1-workspace { transform-origin: center center; max-height: 70vh !important; height: auto; border-width: 2px; width: 100%; padding-top: 1.5rem !important; }
+        .solo-timer-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 12px; background: #1f2937; border-radius: 12px 12px 0 0; overflow: hidden; border-bottom: 2px solid rgba(0, 255, 255, 0.3); }
+        body.practice-active .solo-timer-container { display: block; }
+        body.practice-active #p1-svg-container { min-height: 25vh; flex-shrink: 1; }
+        body.practice-active #p1-svg-container svg { transform: scale(1); max-width: 100%; max-height: 100%; overflow: visible; }
     </style>
 </head>
 <body>
 
     <canvas id="gameCanvas"></canvas>
 
-    <!-- 音效啟動遮罩 -->
-    <div id="audio-init-overlay" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center text-white cursor-pointer transition-opacity" onclick="initAudioAndShowMenu()">
-        <h1 class="text-4xl md:text-6xl font-space font-bold animate-breathe mb-4 text-cyan-400 text-center px-4">宇宙三角防衛戰</h1>
-        <h2 class="text-2xl md:text-3xl font-space font-bold animate-breathe mb-8 text-cyan-200">Trigowar</h2>
-        <div class="text-xl md:text-2xl animate-pulse">點擊畫面啟動系統 / Click to Enter</div>
+    <!-- 音效啟動遮罩與三大排行榜 -->
+    <div id="audio-init-overlay" class="fixed inset-0 bg-black/95 z-[100] flex flex-col items-center justify-start text-white cursor-pointer transition-opacity overflow-y-auto py-8 md:py-12 backdrop-blur-sm" onclick="initAudioAndShowMenu(event)">
+        <div class="flex-shrink-0 text-center mb-8 px-4 w-full max-w-4xl" onclick="initAudioAndShowMenu(event)">
+            <h1 class="text-4xl md:text-6xl font-space font-bold animate-breathe mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 drop-shadow-[0_0_15px_rgba(0,255,255,0.5)]">宇宙三角防衛戰</h1>
+            <h2 class="text-xl md:text-3xl font-space font-bold animate-breathe mb-6 text-cyan-200">Trigowar</h2>
+            <button class="inline-block text-lg md:text-xl animate-pulse cursor-pointer bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-full font-bold shadow-[0_0_15px_rgba(37,99,235,0.8)] transition-all">點擊啟動系統 / Click to Enter</button>
+        </div>
+
+        <div class="w-full max-w-6xl px-4 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 pb-12 cursor-default" onclick="event.stopPropagation()">
+            <!-- 全球總積分 TOP 5 -->
+            <div class="bg-gray-900/80 border border-yellow-500/50 rounded-2xl p-4 shadow-[0_0_20px_rgba(250,204,21,0.15)] flex flex-col min-h-[250px]">
+                <h3 class="text-yellow-400 font-bold text-center mb-3 font-space tracking-widest drop-shadow-[0_0_8px_#facc15] border-b border-yellow-600/50 pb-2">🏆 總積分 TOP 5</h3>
+                <div id="init-global-lb" class="flex flex-col gap-2 text-sm">
+                    <div class="text-center text-gray-500 py-3 font-bold animate-pulse">排行榜讀取中...</div>
+                </div>
+            </div>
+            <!-- 2分鐘模式 TOP 5 -->
+            <div class="bg-gray-900/80 border border-cyan-500/50 rounded-2xl p-4 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col min-h-[250px]">
+                <h3 class="text-cyan-400 font-bold text-center mb-3 font-space tracking-widest drop-shadow-[0_0_8px_#06b6d4] border-b border-cyan-600/50 pb-2">⏱️ 2分鐘模式 TOP 5</h3>
+                <div id="init-time-lb" class="flex flex-col gap-2 text-sm">
+                    <div class="text-center text-gray-500 py-3 font-bold animate-pulse">排行榜讀取中...</div>
+                </div>
+            </div>
+            <!-- 20題模式 TOP 5 -->
+            <div class="bg-gray-900/80 border border-pink-500/50 rounded-2xl p-4 shadow-[0_0_20px_rgba(236,72,153,0.15)] flex flex-col min-h-[250px]">
+                <h3 class="text-pink-400 font-bold text-center mb-3 font-space tracking-widest drop-shadow-[0_0_8px_#ec4899] border-b border-pink-600/50 pb-2">🎯 20題模式 TOP 5</h3>
+                <div id="init-count-lb" class="flex flex-col gap-2 text-sm">
+                    <div class="text-center text-gray-500 py-3 font-bold animate-pulse">排行榜讀取中...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 開局倒數遮罩 -->
@@ -191,13 +174,11 @@
                     <div id="lbl-p1" class="text-cyan-400 font-bold text-[10px] md:text-xs">Player 1</div>
                     <div id="p1-score" class="text-white font-space font-bold text-base md:text-lg leading-none">0</div>
                 </div>
-                
                 <div class="flex-1 health-bar-container">
                     <div id="hb-p1" class="health-bar-p1" style="width: 50%;"></div>
                     <div id="hb-p2" class="health-bar-p2" style="width: 50%;"></div>
                     <div id="hb-junction" class="health-junction" style="left: 50%;"></div>
                 </div>
-
                 <div class="flex-col text-right w-16 md:w-24">
                     <div id="lbl-p2" class="text-purple-400 font-bold text-[10px] md:text-xs">Player 2</div>
                     <div id="p2-score" class="text-white font-space font-bold text-base md:text-lg leading-none">0</div>
@@ -212,10 +193,7 @@
                     <div id="timer-bar-p1" class="h-full bg-cyan-400 absolute left-0 top-0 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
                 </div>
                 <div id="p1-workspace" class="neon-box neon-p1 p-2 rounded-xl flex flex-col h-full max-h-[500px] md:max-h-[500px] transition-all relative">
-                    <!-- 單人模式專用頂部計時條 -->
-                    <div class="solo-timer-container">
-                        <div id="solo-timer-bar-p1" class="h-full bg-cyan-400 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div>
-                    </div>
+                    <div class="solo-timer-container"><div id="solo-timer-bar-p1" class="h-full bg-cyan-400 transition-all duration-[100ms] ease-linear" style="width: 100%;"></div></div>
                     <div id="p1-svg-container" class="flex-1 relative flex items-center justify-center min-h-[100px] overflow-visible"></div>
                     <div id="p1-prompt" class="text-center font-bold text-cyan-200 mt-1 min-h-[40px] md:min-h-[50px] flex items-center justify-center text-sm md:text-base">載入中...</div>
                     <div id="p1-interaction" class="h-14 md:h-20 mt-1 flex items-center justify-center gap-1 md:gap-2 relative z-10"></div>
@@ -241,18 +219,11 @@
     <!-- 首頁選單 -->
     <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-start bg-black/80 backdrop-blur-md hidden pointer-events-auto overflow-y-auto pt-6 pb-12 w-full">
         <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, #000 100%);"></div>
+        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-2 font-space text-center drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] relative z-10 animate-breathe mt-4">宇宙三角防衛戰</h1>
+        <h2 class="text-xl md:text-3xl font-black text-cyan-200 mb-6 font-space text-center drop-shadow-[0_0_15px_rgba(0,255,255,0.8)] relative z-10 animate-breathe">Trigowar</h2>
         
-        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-2 font-space text-center drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] relative z-10 animate-breathe mt-4">
-            宇宙三角防衛戰
-        </h1>
-        <h2 class="text-xl md:text-3xl font-black text-cyan-200 mb-6 font-space text-center drop-shadow-[0_0_15px_rgba(0,255,255,0.8)] relative z-10 animate-breathe">
-            Trigowar
-        </h2>
-        
-        <!-- 左右並疊的靈活排版容器 -->
         <div class="flex flex-col lg:flex-row items-stretch justify-center gap-4 md:gap-6 w-full max-w-5xl relative z-10 px-4 mx-auto">
-            
-            <!-- 左側/中央: 遊戲設定面板 -->
+            <!-- 遊戲設定面板 -->
             <div class="flex-1 w-full max-w-md mx-auto bg-gray-900/80 border border-cyan-800/50 rounded-3xl p-4 md:p-6 shadow-[0_0_30px_rgba(0,255,255,0.2)] backdrop-blur-xl">
                 <!-- 語言切換 -->
                 <div class="flex justify-center gap-4 mb-4">
@@ -260,7 +231,6 @@
                     <button id="lang-en" onclick="setLang('en')" class="px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition">English</button>
                 </div>
 
-                <!-- 難度選擇 (綁定 ID 以便榜首模式自動隱藏) -->
                 <div id="setting-difficulty" class="mb-4">
                     <label class="block text-cyan-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">DIFFICULTY</label>
                     <div class="flex gap-2">
@@ -279,7 +249,6 @@
                         <button id="btn-mode-rank" onclick="setMode('RANKED')" class="py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">榜首之爭</button>
                     </div>
                     
-                    <!-- 一般：電鰻效果設定 -->
                     <div id="setting-eel" class="flex flex-col items-center justify-center bg-black/40 p-2 md:p-3 rounded-lg border border-yellow-600/50 mb-3 shadow-[0_0_10px_rgba(250,204,21,0.1)]">
                         <div class="flex items-center gap-3">
                             <label class="relative inline-flex items-center cursor-pointer">
@@ -294,10 +263,9 @@
                         </div>
                     </div>
 
-                    <!-- 榜首之爭專屬設定 (排行資訊) -->
+                    <!-- 榜首之爭專屬設定 -->
                     <div id="setting-ranked" class="flex flex-col gap-2 bg-black/60 p-3 rounded-lg border border-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.2)] mb-3 hidden">
                         <div class="text-yellow-400 font-bold text-center border-b border-yellow-600 pb-1 text-sm md:text-base" id="lbl-rank-title">👑 榜首之爭設定</div>
-                        
                         <div class="flex justify-center gap-4 text-yellow-300 text-sm mt-1 mb-1 border-b border-yellow-600/50 pb-2">
                             <label class="flex items-center gap-1 cursor-pointer">
                                 <input type="radio" name="rank-rule" value="time" checked onchange="updateRankNotice()"> <span id="lbl-rank-time">2分鐘模式</span>
@@ -306,7 +274,6 @@
                                 <input type="radio" name="rank-rule" value="count" onchange="updateRankNotice()"> <span id="lbl-rank-count">20題模式</span>
                             </label>
                         </div>
-
                         <div class="text-[10px] md:text-xs text-center text-pink-400 font-bold mb-1" id="lbl-rank-notice">⏱ 2分鐘極限挑戰 | ⚡ 答錯自動暈眩3秒</div>
                         
                         <div class="flex gap-2 mt-1">
@@ -321,19 +288,12 @@
                                 <option value="D">D</option><option value="E">E</option>
                             </select>
                         </div>
-                        
-                        <!-- 防呆：純數字輸入 -->
                         <input type="text" inputmode="numeric" pattern="[0-9]*" id="rank-sid" oninput="this.value=this.value.replace(/[^0-9]/g,''); checkAutoFill()" placeholder="學號" class="w-full bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none placeholder-gray-400">
-                        
                         <input type="text" id="rank-nick" placeholder="暱稱 (選填, 勿與他人重複)" class="w-full bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none placeholder-gray-400">
                         
                         <div class="flex justify-center gap-4 text-gray-300 text-sm mt-1">
-                            <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" name="rank-display" value="sid" checked> <span id="lbl-show-sid">顯示學號</span>
-                            </label>
-                            <label class="flex items-center gap-1 cursor-pointer">
-                                <input type="radio" name="rank-display" value="nick"> <span id="lbl-show-nick">顯示暱稱</span>
-                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="rank-display" value="sid" checked> <span id="lbl-show-sid">顯示學號</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="rank-display" value="nick"> <span id="lbl-show-nick">顯示暱稱</span></label>
                         </div>
                     </div>
 
@@ -358,10 +318,10 @@
                 </button>
             </div>
 
-            <!-- 右側: 總積分排行榜 -->
+            <!-- 總積分排行榜 (大廳用) -->
             <div class="w-full lg:w-72 shrink-0 bg-gray-900/80 border border-yellow-500/50 rounded-3xl p-4 shadow-[0_0_20px_rgba(250,204,21,0.2)] backdrop-blur-xl h-fit mx-auto">
                 <h3 class="text-yellow-400 font-bold text-center mb-3 font-space text-sm tracking-widest drop-shadow-[0_0_8px_#facc15]" id="lbl-global-lb">🏆 總積分排行榜 TOP 5</h3>
-                <div id="global-lb-list" class="flex flex-col gap-2 text-xs md:text-sm">
+                <div id="menu-global-lb-list" class="flex flex-col gap-2 text-xs md:text-sm">
                     <div class="text-center text-gray-500 py-3 font-bold">資料同步中...</div>
                 </div>
             </div>
@@ -389,7 +349,6 @@
                 </div>
             </div>
             
-            <!-- 榜首之爭排行榜 -->
             <div id="leaderboard-box" class="hidden mt-2 bg-gray-900 border border-yellow-500 rounded-xl p-3 z-10 relative shadow-[0_0_15px_rgba(250,204,21,0.3)]">
                 <h3 class="text-yellow-400 font-bold text-center mb-3 font-space tracking-widest text-lg" id="lbl-leaderboard">🏆 排行榜 TOP 10</h3>
                 <div id="leaderboard-list" class="flex flex-col gap-2 text-sm md:text-base max-h-[30vh] md:max-h-[400px] overflow-y-auto pr-2">
@@ -401,55 +360,15 @@
         <button id="btn-back-menu" onclick="showMenu()" class="mt-8 px-6 py-2 md:px-8 md:py-3 bg-white text-black rounded-full text-lg md:text-xl font-bold hover:scale-105 transition shadow-[0_0_15px_rgba(255,255,255,0.5)]">返回主畫面</button>
     </div>
 
-    <!-- 遊戲主腳本 -->
     <script>
         // ==========================================
-        // 1. Google Apps Script 雲端排行榜設定
+        // 1. 雲端排行榜與全域變數設定
         // ==========================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyX3j_4orMOOYSkm9kSOBGbXeuDo_oPhi2rC5gthAUIq0VyIIY1Ax7zHZHBMoExhOswqw/exec"; 
 
         let globalLeaderboardData = [];
         let rankedLeaderboardData = [];
 
-        async function fetchLeaderboards() {
-            if (!GAS_URL.startsWith("http")) return; 
-            try {
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                if(data.global) globalLeaderboardData = data.global;
-                if(data.ranked) rankedLeaderboardData = data.ranked;
-                renderGlobalLeaderboard();
-                if(gameState === 'END' && mode === 'RANKED') {
-                    renderRankedLeaderboard();
-                }
-            } catch(e) {
-                console.error("讀取雲端排行榜失敗:", e);
-            }
-        }
-
-        async function submitScoreToCloud(playerData) {
-            if (!GAS_URL.startsWith("http")) return;
-            try {
-                const response = await fetch(GAS_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(playerData)
-                });
-                const data = await response.json();
-                if(data.global) globalLeaderboardData = data.global;
-                if(data.ranked) rankedLeaderboardData = data.ranked;
-                renderGlobalLeaderboard();
-                if(gameState === 'END' && mode === 'RANKED') {
-                    renderRankedLeaderboard();
-                }
-            } catch(e) {
-                console.error("寫入雲端分數失敗:", e);
-            }
-        }
-
-        // ==========================================
-        // 2. 全局變數與設定
-        // ==========================================
         let currentLang = 'zh';
         const i18n = {
             zh: {
@@ -457,15 +376,13 @@
                 setCount: "設定題數:", setTime: "設定秒數:", setPersonal: "專屬作答秒數:",
                 btnStart: "開始作戰 / START", btnEnd: "結束遊戲", btnMenu: "返回主畫面",
                 p1Blue: "Player 1", p2Purple: "Player 2",
-                pracModeInfo: "獨自稱霸 (單人模式)",
-                rankModeInfo: "榜首之爭 (極限衝分)",
+                pracModeInfo: "獨自稱霸 (單人模式)", rankModeInfo: "榜首之爭 (極限衝分)",
                 timeUp: "時間到！", countReached: "題數達成！", missionComplete: "任務完成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
-                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
+                pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題",
                 dragHelp: "請將 θ 拖至正確角",
                 lblCor: "答對: ", lblQ: " 題", totalTime: "總答題時間: ", secs: " 秒",
-                prog: (c, m) => `進度: ${c} / ${m} 題`,
-                timeLeft: (l) => `倒數計時: ${l} 秒`,
+                prog: (c, m) => `進度: ${c} / ${m} 題`, timeLeft: (l) => `倒數計時: ${l} 秒`,
                 correctIs: "正確答案: ", hintTheta: "提示: θ 的對邊為 ",
                 eelTitle: "電鰻效果 (暈眩)", eelSecs: "暈眩秒數:", stun: "暈眩中",
                 rankGrade: "年級", rankClass: "班別", rankSID: "學號", rankNick: "暱稱 (選填, 勿與他人重複)",
@@ -481,15 +398,13 @@
                 setCount: "Target Qs:", setTime: "Total Time:", setPersonal: "Time per Q:",
                 btnStart: "START MISSION", btnEnd: "End Game", btnMenu: "Main Menu",
                 p1Blue: "Player 1", p2Purple: "Player 2",
-                pracModeInfo: "Solo Mode (Time & Score)",
-                rankModeInfo: "Ranked Clash (High Score)",
+                pracModeInfo: "Solo Mode (Time & Score)", rankModeInfo: "Ranked Clash (High Score)",
                 timeUp: "Time's up!", countReached: "Target reached!", missionComplete: "Mission Complete!",
-                winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
-                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
+                winP1: "Player 1 Wins!", winP2: "Player 2 Wins!", draw: "Draw!",
+                pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next",
                 dragHelp: "Drag θ to the correct angle",
                 lblCor: "Correct: ", lblQ: "", totalTime: "Total Time: ", secs: " s",
-                prog: (c, m) => `Progress: ${c} / ${m}`,
-                timeLeft: (l) => `Time Left: ${l} s`,
+                prog: (c, m) => `Progress: ${c} / ${m}`, timeLeft: (l) => `Time Left: ${l} s`,
                 correctIs: "Correct Answer: ", hintTheta: "Hint: Opp of θ is ",
                 eelTitle: "Eel Effect (Stun)", eelSecs: "Stun Secs:", stun: "STUNNED",
                 rankGrade: "Grade", rankClass: "Class", rankSID: "Student ID", rankNick: "Nickname (Unique)",
@@ -502,144 +417,134 @@
             }
         };
 
-        let difficulty = 1; 
-        let mode = 'COUNT'; 
-        let maxCount = 10;
-        let maxTime = 60;
-        let maxPersonalTime = 30;
-        
-        let eelEnabled = false;
-        let eelDuration = 3;
+        let difficulty = 1; let mode = 'COUNT'; 
+        let maxCount = 10; let maxTime = 60; let maxPersonalTime = 30;
+        let eelEnabled = false; let eelDuration = 3;
 
-        let gameState = 'INIT'; 
-        let isPaused = false;
-        let pauseStartTime = 0;
-        let startTime = 0;
-        let mainTimer = null;
-        let globalQuestionsAnswered = 0;
-        let soloTotalTimeMs = 0;
-        let rankData = {}; 
+        let gameState = 'INIT'; let isPaused = false; let pauseStartTime = 0; let startTime = 0; let mainTimer = null;
+        let globalQuestionsAnswered = 0; let soloTotalTimeMs = 0; let rankData = {}; 
 
         let isAudioInit = false;
-        const audioFiles = [
-            'pipe_organ.mp3',
-            'space_metal.mp3',
-            'war.mp3',
-            'war2.mp3',
-            'trigosong.mp3'
-        ];
-        let menuAudio = null;
-        let battleAudio = null;
-        let menuTrackIdx = -1;
-        let battleTrackIdx = -1;
+        const audioFiles = ['pipe_organ.mp3', 'space_metal.mp3', 'war.mp3', 'war2.mp3', 'trigosong.mp3'];
+        let menuAudio = null; let battleAudio = null; let menuTrackIdx = -1; let battleTrackIdx = -1;
 
         // ==========================================
-        // 3. 介面與選項邏輯 (Global Scope)
+        // 2. API 與全域輔助函式
+        // ==========================================
+        async function fetchLeaderboards() {
+            if (!GAS_URL.startsWith("http")) { renderInitLeaderboards(); renderMenuGlobalLeaderboard(); return; }
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                if(data.global) globalLeaderboardData = data.global;
+                if(data.ranked) rankedLeaderboardData = data.ranked;
+                renderInitLeaderboards(); renderMenuGlobalLeaderboard();
+                if(gameState === 'END' && mode === 'RANKED') renderRankedLeaderboard();
+            } catch(e) {
+                console.error("雲端讀取失敗:", e);
+                renderInitLeaderboards(); renderMenuGlobalLeaderboard();
+            }
+        }
+
+        async function submitScoreToCloud(playerData) {
+            if (!GAS_URL.startsWith("http")) return;
+            try {
+                const response = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(playerData) });
+                const data = await response.json();
+                if(data.global) globalLeaderboardData = data.global;
+                if(data.ranked) rankedLeaderboardData = data.ranked;
+                renderInitLeaderboards(); renderMenuGlobalLeaderboard();
+                if(gameState === 'END' && mode === 'RANKED') renderRankedLeaderboard();
+            } catch(e) { console.error("雲端寫入失敗:", e); }
+        }
+
+        function playMenuMusic() {
+            if(!isAudioInit) return;
+            if(battleAudio) battleAudio.pause();
+            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
+        }
+
+        function playBattleMusic() {
+            if(!isAudioInit) return;
+            if(battleAudio) { battleAudio.pause(); battleAudio.currentTime = 0; }
+            if(menuAudio) menuAudio.pause();
+            do { battleTrackIdx = Math.floor(Math.random() * audioFiles.length); } while(battleTrackIdx === menuTrackIdx);
+            battleAudio = new Audio(audioFiles[battleTrackIdx]);
+            battleAudio.loop = true; battleAudio.volume = 0.5;
+            battleAudio.play().catch(e => console.log("Audio play error:", e));
+        }
+
+        // ==========================================
+        // 3. UI 互動函式綁定至 Global
         // ==========================================
         window.setLang = function(lang) {
-            currentLang = lang;
-            const t = i18n[lang];
-            
+            currentLang = lang; const t = i18n[lang];
             document.getElementById('lang-zh').className = lang === 'zh' ? "px-4 py-1 rounded-full bg-blue-600 text-white font-bold text-sm border-2 border-blue-400 transition" : "px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition";
             document.getElementById('lang-en').className = lang === 'en' ? "px-4 py-1 rounded-full bg-blue-600 text-white font-bold text-sm border-2 border-blue-400 transition" : "px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition";
-
-            document.getElementById('btn-mode-count').innerText = t.modeCount;
-            document.getElementById('btn-mode-time').innerText = t.modeTime;
-            document.getElementById('btn-mode-prac').innerText = t.modePrac;
-            document.getElementById('btn-mode-rank').innerText = t.modeRank;
-            document.getElementById('lbl-set-count').innerText = t.setCount;
-            document.getElementById('lbl-set-time').innerText = t.setTime;
-            document.getElementById('lbl-set-personal').innerText = t.setPersonal;
-            document.getElementById('btn-start').innerText = t.btnStart;
             
+            ['btn-mode-count', 'btn-mode-time', 'btn-mode-prac', 'btn-mode-rank', 'lbl-set-count', 'lbl-set-time', 'lbl-set-personal', 'btn-start', 'opt-grade', 'opt-class', 'lbl-show-sid', 'lbl-show-nick', 'lbl-leaderboard', 'lbl-global-lb', 'btn-end', 'lbl-p1', 'lbl-p2', 'res-p1', 'res-p2', 'lbl-cor1', 'lbl-cor2', 'lbl-q1', 'lbl-q2', 'btn-back-menu'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    if (id.startsWith('btn-mode')) el.innerText = t[id.replace('btn-mode-', 'mode').replace('prac', 'Prac').replace('rank', 'Rank').replace('count', 'Count').replace('time', 'Time')];
+                    else if (id.startsWith('lbl-set')) el.innerText = t[id.replace('lbl-', '')];
+                    else if (id === 'btn-start') el.innerText = t.btnStart;
+                    else if (id === 'opt-grade') el.innerText = t.rankGrade;
+                    else if (id === 'opt-class') el.innerText = t.rankClass;
+                    else if (id === 'lbl-show-sid') el.innerText = t.rankShowSID;
+                    else if (id === 'lbl-show-nick') el.innerText = t.rankShowNick;
+                    else if (id === 'lbl-leaderboard') el.innerText = t.leaderboard;
+                    else if (id === 'lbl-global-lb') el.innerText = t.globalLb;
+                    else if (id === 'btn-end') el.innerText = t.btnEnd;
+                    else if (id === 'lbl-p1' || id === 'res-p1') el.innerText = t.p1Blue;
+                    else if (id === 'lbl-p2' || id === 'res-p2') el.innerText = t.p2Purple;
+                    else if (id === 'lbl-cor1' || id === 'lbl-cor2') el.innerText = t.lblCor;
+                    else if (id === 'lbl-q1' || id === 'lbl-q2') el.innerText = t.lblQ;
+                    else if (id === 'btn-back-menu') el.innerText = t.btnMenu;
+                }
+            });
             document.getElementById('lbl-eel').innerHTML = `<span class="text-lg">⚡</span> ${t.eelTitle}`;
             document.getElementById('lbl-eel-time').innerText = t.eelSecs;
-
-            document.getElementById('opt-grade').innerText = t.rankGrade;
-            document.getElementById('opt-class').innerText = t.rankClass;
             document.getElementById('rank-sid').placeholder = t.rankSID;
             document.getElementById('rank-nick').placeholder = t.rankNick;
-            document.getElementById('lbl-show-sid').innerText = t.rankShowSID;
-            document.getElementById('lbl-show-nick').innerText = t.rankShowNick;
-            document.getElementById('lbl-leaderboard').innerText = t.leaderboard;
-            document.getElementById('lbl-global-lb').innerText = t.globalLb;
             document.getElementById('lbl-rank-time').innerText = t.rankRuleTime;
             document.getElementById('lbl-rank-count').innerText = t.rankRuleCount;
             window.updateRankNotice();
             
-            if(!document.getElementById('menu-error').classList.contains('hidden')) {
-                document.getElementById('menu-error').innerText = t.rankErr;
+            if(!document.getElementById('menu-error').classList.contains('hidden')) document.getElementById('menu-error').innerText = t.rankErr;
+            if (document.getElementById('res-time-box1')) {
+                document.getElementById('res-time-box1').childNodes[0].nodeValue = t.totalTime;
+                document.getElementById('res-time-box1').childNodes[2].nodeValue = t.secs;
             }
-
-            document.getElementById('btn-end').innerText = t.btnEnd;
-            document.getElementById('lbl-p1').innerText = t.p1Blue;
-            document.getElementById('lbl-p2').innerText = t.p2Purple;
-            document.getElementById('res-p1').innerText = t.p1Blue;
-            document.getElementById('res-p2').innerText = t.p2Purple;
-            document.getElementById('lbl-cor1').innerText = t.lblCor;
-            document.getElementById('lbl-cor2').innerText = t.lblCor;
-            document.getElementById('lbl-q1').innerText = t.lblQ;
-            document.getElementById('lbl-q2').innerText = t.lblQ;
-            document.getElementById('btn-back-menu').innerText = t.btnMenu;
-            
-            const timeBoxText = document.getElementById('res-time-box1');
-            if (timeBoxText) {
-                timeBoxText.childNodes[0].nodeValue = t.totalTime;
-                timeBoxText.childNodes[2].nodeValue = t.secs;
-            }
-            
             if (gameState === 'PLAYING') {
-                if (mode === 'PRACTICE') document.getElementById('gameInfoText').innerText = t.pracModeInfo;
-                else if (mode === 'RANKED') document.getElementById('gameInfoText').innerText = t.rankModeInfo;
+                document.getElementById('gameInfoText').innerText = (mode === 'PRACTICE') ? t.pracModeInfo : t.rankModeInfo;
             }
         };
 
         window.setDiff = function(lvl) {
             difficulty = lvl;
-            const b1 = document.getElementById('btn-lvl1');
-            const b2 = document.getElementById('btn-lvl2');
-            const b3 = document.getElementById('btn-lvl3');
-            b1.className = `flex-1 py-2 md:py-3 ${lvl===1 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
-            b2.className = `flex-1 py-2 md:py-3 ${lvl===2 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
-            b3.className = `flex-1 py-2 md:py-3 ${lvl===3 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
+            [1,2,3].forEach(i => {
+                document.getElementById(`btn-lvl${i}`).className = `flex-1 py-2 md:py-3 ${lvl===i ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
+            });
         };
 
         window.setMode = function(selectedMode) {
             mode = selectedMode;
-            const bC = document.getElementById('btn-mode-count');
-            const bT = document.getElementById('btn-mode-time');
-            const bP = document.getElementById('btn-mode-prac');
-            const bR = document.getElementById('btn-mode-rank');
-            
-            [bC, bT, bP, bR].forEach(b => b.className = "py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base");
+            ['COUNT', 'TIME', 'PRACTICE', 'RANKED'].forEach(m => {
+                const id = `btn-mode-${m.toLowerCase()}`;
+                document.getElementById(id).className = `py-2 rounded-xl font-bold border-2 transition text-sm md:text-base ${m===mode ? 'bg-purple-600/90 text-white border-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.5)]' : 'bg-gray-800/80 text-gray-400 border-transparent'}`;
+            });
             
             document.getElementById('setting-difficulty').classList.remove('hidden');
-            document.getElementById('setting-count').classList.add('hidden');
-            document.getElementById('setting-time').classList.add('hidden');
-            document.getElementById('setting-ranked').classList.add('hidden');
-            document.getElementById('setting-eel').classList.remove('hidden'); 
-            document.getElementById('setting-personal').classList.remove('hidden'); 
-            document.getElementById('menu-error').classList.add('hidden');
+            ['setting-count', 'setting-time', 'setting-ranked', 'setting-eel', 'setting-personal', 'menu-error'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
-            const activeClass = "py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base";
-            
-            if(mode === 'COUNT') { bC.className = activeClass; document.getElementById('setting-count').classList.remove('hidden'); } 
-            else if (mode === 'TIME') { bT.className = activeClass; document.getElementById('setting-time').classList.remove('hidden'); } 
-            else if (mode === 'PRACTICE') { bP.className = activeClass; document.getElementById('setting-count').classList.remove('hidden'); }
-            else if (mode === 'RANKED') { 
-                bR.className = activeClass; 
-                document.getElementById('setting-difficulty').classList.add('hidden'); 
-                document.getElementById('setting-time').classList.add('hidden'); 
-                document.getElementById('setting-eel').classList.add('hidden');  
-                document.getElementById('setting-personal').classList.add('hidden'); 
-                document.getElementById('setting-ranked').classList.remove('hidden'); 
-            }
+            if(mode === 'COUNT' || mode === 'PRACTICE') { document.getElementById('setting-count').classList.remove('hidden'); document.getElementById('setting-eel').classList.remove('hidden'); document.getElementById('setting-personal').classList.remove('hidden'); }
+            else if (mode === 'TIME') { document.getElementById('setting-time').classList.remove('hidden'); document.getElementById('setting-eel').classList.remove('hidden'); document.getElementById('setting-personal').classList.remove('hidden'); }
+            else if (mode === 'RANKED') { document.getElementById('setting-difficulty').classList.add('hidden'); document.getElementById('setting-ranked').classList.remove('hidden'); }
         };
 
         window.updateRankNotice = function() {
             const rule = document.querySelector('input[name="rank-rule"]:checked').value;
-            const t = i18n[currentLang];
-            document.getElementById('lbl-rank-notice').innerText = rule === 'time' ? t.rankNoticeTime : t.rankNoticeCount;
+            document.getElementById('lbl-rank-notice').innerText = rule === 'time' ? i18n[currentLang].rankNoticeTime : i18n[currentLang].rankNoticeCount;
         };
 
         window.showMenu = function() {
@@ -647,21 +552,17 @@
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('gameUI').classList.add('hidden');
             gameState = 'MENU';
-            
-            renderGlobalLeaderboard(); 
+            renderInitLeaderboards(); renderMenuGlobalLeaderboard(); 
             playMenuMusic();
         };
 
-        window.initAudioAndShowMenu = async function() {
+        window.initAudioAndShowMenu = async function(event) {
+            if (event) event.stopPropagation();
             if(isAudioInit) return;
-            
             menuTrackIdx = Math.floor(Math.random() * audioFiles.length);
             menuAudio = new Audio(audioFiles[menuTrackIdx]);
-            menuAudio.loop = true;
-            menuAudio.volume = 0.5;
-            
-            try { await menuAudio.play(); } catch(err) { console.log("Audio play prevented:", err); }
-            
+            menuAudio.loop = true; menuAudio.volume = 0.5;
+            try { await menuAudio.play(); } catch(err) { console.log("Audio play error", err); }
             isAudioInit = true;
             document.getElementById('audio-init-overlay').classList.add('hidden');
             window.showMenu();
@@ -673,67 +574,41 @@
             const sid = document.getElementById('rank-sid').value;
             if (grade && cls && sid) {
                 let playersObj = {};
-                if (globalLeaderboardData.length > 0) {
-                    globalLeaderboardData.forEach(p => { playersObj[p.pid] = p; });
-                } else {
-                    playersObj = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
-                }
+                if (globalLeaderboardData.length > 0) globalLeaderboardData.forEach(p => { playersObj[p.pid] = p; });
+                else playersObj = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
 
                 let pid = `${grade}-${cls}-${sid}`;
                 if (playersObj[pid] && playersObj[pid].name) {
                     let n = playersObj[pid].name.split(' ');
-                    if(n.length > 1) {
-                        document.getElementById('rank-nick').value = n.slice(1).join(' ');
-                    }
+                    if(n.length > 1) document.getElementById('rank-nick').value = n.slice(1).join(' ');
                 }
             }
         };
 
         function showError(msg) {
             const err = document.getElementById('menu-error');
-            err.innerText = msg;
-            err.classList.remove('hidden');
+            err.innerText = msg; err.classList.remove('hidden');
         }
 
         window.startPreGameCountdown = function() {
             if (mode === 'RANKED') {
                 const rankRule = document.querySelector('input[name="rank-rule"]:checked').value;
-                if (rankRule === 'time') {
-                    maxTime = 120;
-                    maxCount = Infinity;
-                } else {
-                    maxCount = 20;
-                    maxTime = Infinity;
-                }
+                maxTime = rankRule === 'time' ? 120 : Infinity;
+                maxCount = rankRule === 'time' ? Infinity : 20;
+                maxPersonalTime = 90; eelEnabled = true; eelDuration = 3;
                 
-                maxPersonalTime = 90; 
-                eelEnabled = true;
-                eelDuration = 3;
-                
-                const grade = document.getElementById('rank-grade').value;
-                const cls = document.getElementById('rank-class').value;
-                const sid = document.getElementById('rank-sid').value;
-                const nick = document.getElementById('rank-nick').value.trim();
+                const grade = document.getElementById('rank-grade').value; const cls = document.getElementById('rank-class').value;
+                const sid = document.getElementById('rank-sid').value; const nick = document.getElementById('rank-nick').value.trim();
                 const displayType = document.querySelector('input[name="rank-display"]:checked').value;
-                
                 const sidVal = parseInt(sid);
-                if (!grade || !cls || !sid || isNaN(sidVal)) {
-                    showError(i18n[currentLang].rankErr); return;
-                }
-                if (sidVal < 1 || sidVal > 60) {
-                    showError(currentLang === 'zh' ? "⚠️ 學號必須在 1 到 60 之間！" : "⚠️ SID must be between 1 and 60!"); return;
-                }
-
+                
+                if (!grade || !cls || !sid || isNaN(sidVal)) { showError(i18n[currentLang].rankErr); return; }
                 const badWords = ['幹', '操', '靠北', '沙小', '媽的', 'fuck', 'shit', 'bitch', 'cunt', '妓女', '笨蛋', '智障', '白痴', '垃圾'];
-                if (nick && badWords.some(w => nick.toLowerCase().includes(w))) {
-                    showError(i18n[currentLang].rankProfanity); return;
-                }
+                if (nick && badWords.some(w => nick.toLowerCase().includes(w))) { showError(i18n[currentLang].rankProfanity); return; }
 
                 let currentPid = `${grade}-${cls}-${sid}`;
                 let isTaken = globalLeaderboardData.some(p => p.pid !== currentPid && p.name && p.name.includes(nick));
-                if(nick && isTaken) {
-                    showError(currentLang === 'zh' ? "⚠️ 此暱稱已被他人使用，請換一個！" : "⚠️ Nickname already taken!"); return;
-                }
+                if(nick && isTaken) { showError(currentLang === 'zh' ? "⚠️ 此暱稱已被他人使用，請換一個！" : "⚠️ Nickname already taken!"); return; }
 
                 document.getElementById('menu-error').classList.add('hidden');
                 rankData = { grade, cls, sid, nick, displayType, rule: rankRule };
@@ -747,253 +622,177 @@
             
             document.getElementById('mainMenu').classList.add('hidden');
             const countdownEl = document.getElementById('preGameCountdown');
-            const numEl = document.getElementById('countdownNumber');
             countdownEl.classList.remove('hidden');
-            
-            let count = 3; numEl.innerText = count;
+            let count = 3; document.getElementById('countdownNumber').innerText = count;
             
             let intv = setInterval(() => {
                 count--;
-                if(count > 0) numEl.innerText = count;
+                if(count > 0) document.getElementById('countdownNumber').innerText = count;
                 else { clearInterval(intv); countdownEl.classList.add('hidden'); actualGameStart(); }
             }, 1000);
         };
 
-        window.forceEndGame = function(reason) { endGame(reason); };
-
         window.togglePause = function() {
             if (gameState !== 'PLAYING') return;
             const btn = document.getElementById('btn-pause');
-
             if (!isPaused) {
-                // 觸發暫停
-                isPaused = true;
-                pauseStartTime = Date.now();
+                isPaused = true; pauseStartTime = Date.now();
                 btn.innerText = currentLang === 'zh' ? '繼續' : 'Resume';
                 document.getElementById('gameInfoText').innerText = currentLang === 'zh' ? '暫停中 / PAUSED' : 'PAUSED';
             } else {
-                // 解除暫停，進入倒數 3 秒
-                btn.disabled = true;
-                btn.innerText = currentLang === 'zh' ? '準備' : 'Ready';
-                
+                btn.disabled = true; btn.innerText = currentLang === 'zh' ? '準備' : 'Ready';
                 const countdownEl = document.getElementById('preGameCountdown');
-                const numEl = document.getElementById('countdownNumber');
                 countdownEl.classList.remove('hidden');
-                
-                let count = 3; 
-                numEl.innerText = count;
+                let count = 3; document.getElementById('countdownNumber').innerText = count;
                 
                 let intv = setInterval(() => {
                     count--;
-                    if(count > 0) {
-                        numEl.innerText = count;
-                    } else {
-                        clearInterval(intv); 
-                        countdownEl.classList.add('hidden'); 
-                        
-                        // 將所有時間戳偏移，彌補暫停期間流失的時間
+                    if(count > 0) document.getElementById('countdownNumber').innerText = count;
+                    else {
+                        clearInterval(intv); countdownEl.classList.add('hidden'); 
                         const pauseDuration = Date.now() - pauseStartTime;
                         startTime += pauseDuration;
-                        if (p1.qStart) p1.qStart += pauseDuration;
-                        if (p2.qStart) p2.qStart += pauseDuration;
-                        if (p1.stunEndTime) p1.stunEndTime += pauseDuration;
-                        if (p2.stunEndTime) p2.stunEndTime += pauseDuration;
-                        
-                        isPaused = false;
-                        btn.disabled = false;
+                        if (p1.qStart) p1.qStart += pauseDuration; if (p2.qStart) p2.qStart += pauseDuration;
+                        if (p1.stunEndTime) p1.stunEndTime += pauseDuration; if (p2.stunEndTime) p2.stunEndTime += pauseDuration;
+                        isPaused = false; btn.disabled = false;
                         btn.innerText = currentLang === 'zh' ? '暫停' : 'Pause';
                     }
                 }, 1000);
             }
         };
 
+        window.forceEndGame = function(reason) { endGame(reason); };
         window.nextSoloQ = function(pid) {
             let player = pid === 1 ? p1 : p2;
             const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
-            if(overlay) {
-                if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv));
-                overlay.remove();
-            }
+            if(overlay) { if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv)); overlay.remove(); }
             generateQuestion(player);
         };
 
+        document.getElementById('chk-eel').addEventListener('change', function() {
+            const conf = document.getElementById('eel-time-config');
+            if(this.checked) conf.classList.remove('opacity-50', 'pointer-events-none');
+            else conf.classList.add('opacity-50', 'pointer-events-none');
+        });
+
         // ==========================================
-        // 4. 遊戲核心與排行榜渲染
+        // 4. 遊戲核心與繪製
         // ==========================================
-        function playBattleMusic() {
-            if(!isAudioInit) return;
-            if(battleAudio) { battleAudio.pause(); battleAudio.currentTime = 0; }
-            if(menuAudio) menuAudio.pause();
-            
-            do { battleTrackIdx = Math.floor(Math.random() * audioFiles.length); } while(battleTrackIdx === menuTrackIdx);
-            
-            battleAudio = new Audio(audioFiles[battleTrackIdx]);
-            battleAudio.loop = true;
-            battleAudio.volume = 0.5;
-            battleAudio.play().catch(e => console.log("Audio play error:", e));
+        function renderInitLeaderboards() {
+            let glPlayers = globalLeaderboardData; 
+            if (glPlayers.length === 0) {
+                let localPlayers = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                glPlayers = Object.values(localPlayers).map(p => ({ pid: p.pid, name: p.name, totalScore: p.totalScore }));
+            }
+            glPlayers = glPlayers.filter(p => (Number(p.totalScore) || 0) > 0);
+            glPlayers.sort((a, b) => (Number(b.totalScore) || 0) - (Number(a.totalScore) || 0));
+            glPlayers = glPlayers.slice(0, 5);
+            const glList = document.getElementById('init-global-lb');
+            if (glList) {
+                glList.innerHTML = glPlayers.length === 0 ? '<div class="text-center text-gray-500 py-3 font-bold">尚無紀錄</div>' : '';
+                glPlayers.forEach((p, i) => {
+                    let badge = i === 0 ? '👑' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : ''));
+                    glList.innerHTML += `<div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded border ${i===0?'border-yellow-500':'border-gray-700'}"><span class="font-bold text-yellow-400">#${i+1} ${badge} ${p.name}</span><span class="text-white font-space">${Number(p.totalScore)||0} pts</span></div>`;
+                });
+            }
+
+            let rkPlayers = rankedLeaderboardData;
+            if (rkPlayers.length === 0) rkPlayers = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+            rkPlayers = rkPlayers.filter(e => (Number(e.score) || 0) > 0);
+
+            let timeLb = rkPlayers.filter(e => !e.rule || e.rule === 'time');
+            timeLb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
+            timeLb = timeLb.slice(0, 5);
+            const tmList = document.getElementById('init-time-lb');
+            if (tmList) {
+                tmList.innerHTML = timeLb.length === 0 ? '<div class="text-center text-gray-500 py-3 font-bold">尚無紀錄</div>' : '';
+                timeLb.forEach((p, i) => { tmList.innerHTML += `<div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded border ${i===0?'border-cyan-500':'border-gray-700'}"><span class="font-bold text-cyan-400">#${i+1} ${p.name}</span><span class="text-white font-space">${p.score} pts</span></div>`; });
+            }
+
+            let countLb = rkPlayers.filter(e => e.rule === 'count');
+            countLb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
+            countLb = countLb.slice(0, 5);
+            const ctList = document.getElementById('init-count-lb');
+            if (ctList) {
+                ctList.innerHTML = countLb.length === 0 ? '<div class="text-center text-gray-500 py-3 font-bold">尚無紀錄</div>' : '';
+                countLb.forEach((p, i) => { ctList.innerHTML += `<div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded border ${i===0?'border-pink-500':'border-gray-700'}"><span class="font-bold text-pink-400">#${i+1} ${p.name}</span><span class="text-white font-space">${p.score} pts</span></div>`; });
+            }
         }
 
-        function playMenuMusic() {
-            if(!isAudioInit) return;
-            if(battleAudio) battleAudio.pause();
-            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
-        }
-
-        function renderGlobalLeaderboard() {
-            const t = i18n[currentLang];
+        function renderMenuGlobalLeaderboard() {
             let players = globalLeaderboardData; 
-            
             if (players.length === 0) {
                 let localPlayers = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
-                players = Object.values(localPlayers).map(p => ({
-                    pid: p.pid,
-                    name: p.name,
-                    totalScore: p.totalScore
-                }));
+                players = Object.values(localPlayers).map(p => ({ pid: p.pid, name: p.name, totalScore: p.totalScore }));
             }
-            
             players = players.filter(p => (Number(p.totalScore) || 0) > 0);
             players.sort((a, b) => (Number(b.totalScore) || 0) - (Number(a.totalScore) || 0));
             players = players.slice(0, 5); 
             
-            const list = document.getElementById('global-lb-list');
-            if (players.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無任何戰鬥紀錄</div>';
-                return;
-            }
+            const list = document.getElementById('menu-global-lb-list');
+            if (!list) return;
+            if (players.length === 0) { list.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無紀錄</div>'; return; }
             list.innerHTML = '';
             players.forEach((p, i) => {
                 let badge = i === 0 ? '👑' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : ''));
-                let sVal = p.totalScore !== undefined ? Number(p.totalScore) : 0;
-                list.innerHTML += `
-                    <div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded-lg border ${i===0?'border-yellow-500':'border-gray-700'}">
-                        <span class="${i<3?'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]':'text-gray-300'} font-bold">#${i+1} ${badge} ${p.name}</span>
-                        <span class="text-cyan-400 font-space font-bold text-base md:text-lg drop-shadow-[0_0_5px_#0ff]">${sVal}</span>
-                    </div>
-                `;
+                list.innerHTML += `<div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded-lg border ${i===0?'border-yellow-500':'border-gray-700'}"><span class="${i<3?'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]':'text-gray-300'} font-bold">#${i+1} ${badge} ${p.name}</span><span class="text-cyan-400 font-space font-bold text-base md:text-lg drop-shadow-[0_0_5px_#0ff]">${Number(p.totalScore)||0}</span></div>`;
             });
         }
 
         function renderRankedLeaderboard() {
             const t = i18n[currentLang];
             let lb = rankedLeaderboardData; 
-
-            if (lb.length === 0) {
-                lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
-            }
-
-            lb = lb.filter(e => (Number(e.score) || 0) > 0);
+            if (lb.length === 0) lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+            lb = lb.filter(e => (Number(e.score) || 0) > 0 && (e.rule || 'time') === rankData.rule);
             lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
             lb = lb.slice(0, 10); 
 
             const listEl = document.getElementById('leaderboard-list');
+            if (!listEl) return;
             listEl.innerHTML = '';
-            if (lb.length === 0) {
-                listEl.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無有效戰鬥紀錄</div>';
-            } else {
+            if (lb.length === 0) { listEl.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無紀錄</div>'; } 
+            else {
                 let currentPid = rankData.grade ? `${rankData.grade}-${rankData.cls}-${rankData.sid}` : null;
                 lb.forEach((entry, idx) => {
                     const isMe = (entry.pid === currentPid); 
-                    const c = entry.corrects || 0;
-                    const a = entry.acc || 0;
-                    listEl.innerHTML += `
-                        <div class="flex justify-between items-center bg-gray-800 px-3 py-2 rounded border border-gray-700 ${isMe ? 'bg-cyan-900/30 border-cyan-500' : ''}">
-                            <span class="font-bold ${idx < 3 ? 'text-yellow-300' : 'text-gray-300'}">#${idx+1} ${entry.name}</span>
-                            <div class="text-right leading-tight">
-                                <div class="font-space font-bold text-cyan-400 text-base">${entry.score} pts</div>
-                                <div class="text-[10px] md:text-xs text-gray-400">${t.lblCor}${c} | ${t.accLabel}: ${a}%</div>
-                            </div>
-                        </div>`;
+                    listEl.innerHTML += `<div class="flex justify-between items-center bg-gray-800 px-3 py-2 rounded border border-gray-700 ${isMe ? 'bg-cyan-900/30 border-cyan-500' : ''}"><span class="font-bold ${idx < 3 ? 'text-yellow-300' : 'text-gray-300'}">#${idx+1} ${entry.name}</span><div class="text-right leading-tight"><div class="font-space font-bold text-cyan-400 text-base">${entry.score} pts</div><div class="text-[10px] md:text-xs text-gray-400">${t.lblCor}${entry.corrects||0} | ${t.accLabel}: ${entry.acc||0}%</div></div></div>`;
                 });
             }
         }
 
-        const pythagoreanTriples = [
-            { o: 3, a: 4, h: 5 }, { o: 6, a: 8, h: 10 }, { o: 5, a: 12, h: 13 }, 
-            { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }
-        ];
-        const doubleTriples = [
-            { o: 12, a1: 5, h1: 13, a2: 9, h2: 15 }, { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 },
-            { o: 12, a1: 9, h1: 15, a2: 16, h2: 20 }, { o: 15, a1: 8, h1: 17, a2: 20, h2: 25 },
-            { o: 24, a1: 7, h1: 25, a2: 18, h2: 30 }, { o: 8,  a1: 6, h1: 10, a2: 15, h2: 17 }
-        ];
+        const pythagoreanTriples = [{ o: 3, a: 4, h: 5 }, { o: 6, a: 8, h: 10 }, { o: 5, a: 12, h: 13 }, { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }];
+        const doubleTriples = [{ o: 12, a1: 5, h1: 13, a2: 9, h2: 15 }, { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 }, { o: 12, a1: 9, h1: 15, a2: 16, h2: 20 }, { o: 15, a1: 8, h1: 17, a2: 20, h2: 25 }, { o: 24, a1: 7, h1: 25, a2: 18, h2: 30 }, { o: 8, a1: 6, h1: 10, a2: 15, h2: 17 }];
 
-        const p1 = createPlayer(1, 'cyan', 'p1');
-        const p2 = createPlayer(2, 'purple', 'p2');
-        let p1ShipPos = 0; let p2ShipPos = 0;
-
-        function createPlayer(id, color, prefix) {
-            return {
-                id, color, prefix, score: 0, corrects: 0, wrongAttempts: 0, totalAttempts: 0, consecutiveWrongs: 0,
-                qStart: 0, currentQ: null, isGenerating: false, dndState: {},
-                isStunned: false, stunEndTime: 0
-            };
-        }
-
-        let activeDrags = {}; 
-        function cleanupDrags(pid) {
-            for (let pointerId in activeDrags) {
-                if (activeDrags[pointerId].pid === pid) {
-                    if (activeDrags[pointerId].ghostEl) activeDrags[pointerId].ghostEl.remove();
-                    delete activeDrags[pointerId];
-                }
-            }
-            document.querySelectorAll(`.ghost-drag[data-pid="${pid}"]`).forEach(el => el.remove());
-        }
+        const p1 = { id: 1, prefix: 'p1', score: 0, color: '#0ff' };
+        const p2 = { id: 2, prefix: 'p2', score: 0, color: '#f0f' };
 
         function actualGameStart() {
             document.getElementById('gameUI').classList.remove('hidden');
-            
             if(mode === 'PRACTICE' || mode === 'RANKED') {
                 document.body.classList.add('practice-active');
-                if (mode === 'PRACTICE') {
-                    document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
-                    document.getElementById('btn-end').classList.remove('hidden');
-                    document.getElementById('btn-pause').classList.add('hidden');
-                } else {
-                    document.getElementById('gameInfoText').innerText = i18n[currentLang].rankModeInfo;
-                    document.getElementById('btn-end').classList.add('hidden');
-                    const btnPause = document.getElementById('btn-pause');
-                    btnPause.classList.remove('hidden');
-                    btnPause.innerText = currentLang === 'zh' ? '暫停' : 'Pause';
-                    btnPause.disabled = false;
-                }
+                if (mode === 'PRACTICE') { document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo; document.getElementById('btn-end').classList.remove('hidden'); document.getElementById('btn-pause').classList.add('hidden'); } 
+                else { document.getElementById('gameInfoText').innerText = i18n[currentLang].rankModeInfo; document.getElementById('btn-end').classList.add('hidden'); const btnPause = document.getElementById('btn-pause'); btnPause.classList.remove('hidden'); btnPause.innerText = currentLang === 'zh' ? '暫停' : 'Pause'; btnPause.disabled = false; }
             } else {
-                document.body.classList.remove('practice-active');
-                document.getElementById('btn-end').classList.remove('hidden');
-                document.getElementById('btn-pause').classList.add('hidden');
+                document.body.classList.remove('practice-active'); document.getElementById('btn-end').classList.remove('hidden'); document.getElementById('btn-pause').classList.add('hidden');
             }
             
-            isPaused = false;
-            p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.totalAttempts = 0; p1.consecutiveWrongs = 0; p1.isStunned = false;
+            isPaused = false; p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.totalAttempts = 0; p1.consecutiveWrongs = 0; p1.isStunned = false;
             p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0; p2.totalAttempts = 0; p2.consecutiveWrongs = 0; p2.isStunned = false;
-            p1ShipPos = 0; p2ShipPos = 0;
-            globalQuestionsAnswered = 0;
-            soloTotalTimeMs = 0;
-            gameState = 'PLAYING';
-            startTime = Date.now();
+            p1ShipPos = 0; p2ShipPos = 0; globalQuestionsAnswered = 0; soloTotalTimeMs = 0; gameState = 'PLAYING'; startTime = Date.now();
             lasers = []; particles = [];
 
-            document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
-            activeDrags = {};
+            document.querySelectorAll('.ghost-drag').forEach(el => el.remove()); activeDrags = {};
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
-            playBattleMusic();
-
-            updateHeaderUI(); 
+            playBattleMusic(); updateHeaderUI(); 
             if(mode !== 'PRACTICE' && mode !== 'RANKED') updateHealthBar();
-            
-            generateQuestion(p1); 
-            if(mode !== 'PRACTICE' && mode !== 'RANKED') generateQuestion(p2);
-
-            clearInterval(mainTimer);
-            mainTimer = setInterval(gameTick, 100);
+            generateQuestion(p1); if(mode !== 'PRACTICE' && mode !== 'RANKED') generateQuestion(p2);
+            clearInterval(mainTimer); mainTimer = setInterval(gameTick, 100);
             resizeCanvas();
         }
 
         function gameTick() {
             if(gameState !== 'PLAYING' || isPaused) return;
-            
             const t = i18n[currentLang];
             if(mode === 'TIME' || (mode === 'RANKED' && rankData.rule === 'time')) {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -1002,63 +801,39 @@
                 if(left <= 0) forceEndGame(t.timeUp);
             } else if (mode === 'COUNT' || mode === 'PRACTICE' || (mode === 'RANKED' && rankData.rule === 'count')) {
                 document.getElementById('gameInfoText').innerText = t.prog(globalQuestionsAnswered, maxCount);
-                if(globalQuestionsAnswered >= maxCount) {
-                    forceEndGame(mode === 'PRACTICE' ? t.missionComplete : t.countReached);
-                }
+                if(globalQuestionsAnswered >= maxCount) forceEndGame(mode === 'PRACTICE' ? t.missionComplete : t.countReached);
             }
 
             [p1, p2].forEach(player => {
                 if((mode === 'PRACTICE' || mode === 'RANKED') && player.id === 2) return; 
-                
                 if (player.isStunned) {
                     const left = Math.ceil((player.stunEndTime - Date.now()) / 1000);
                     const txtEl = document.getElementById(`stun-text-${player.prefix}`);
                     if (txtEl && left > 0) txtEl.innerText = `⚡ ${t.stun} ${left}s`;
-                    
-                    if (Date.now() >= player.stunEndTime) {
-                        player.isStunned = false;
-                        const overlay = document.getElementById(`stun-overlay-${player.prefix}`);
-                        if (overlay) overlay.remove();
-                    }
+                    if (Date.now() >= player.stunEndTime) { player.isStunned = false; const overlay = document.getElementById(`stun-overlay-${player.prefix}`); if (overlay) overlay.remove(); }
                 }
 
                 const workspace = document.getElementById(`${player.prefix}-workspace`);
                 if(!player.isGenerating && player.qStart > 0 && !player.isStunned) {
                     const elapsed = (Date.now() - player.qStart) / 1000;
                     const left = Math.max(0, maxPersonalTime - elapsed);
-                    
                     document.getElementById(`timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
-                    if(mode === 'PRACTICE' || mode === 'RANKED') {
-                        document.getElementById(`solo-timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
-                    }
-                    
-                    if(left <= 3 && left > 0) workspace.classList.add('crisis-alert');
-                    else workspace.classList.remove('crisis-alert');
-
+                    if(mode === 'PRACTICE' || mode === 'RANKED') document.getElementById(`solo-timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
+                    if(left <= 3 && left > 0) workspace.classList.add('crisis-alert'); else workspace.classList.remove('crisis-alert');
                     if(left <= 0) triggerWrongAnswer(player, true);
                 }
             });
         }
 
-        function updateHeaderUI() {
-            document.getElementById('p1-score').innerText = p1.score;
-            document.getElementById('p2-score').innerText = p2.score;
-        }
+        function updateHeaderUI() { document.getElementById('p1-score').innerText = p1.score; document.getElementById('p2-score').innerText = p2.score; }
 
         function updateHealthBar() {
             if(mode === 'PRACTICE' || mode === 'RANKED') return;
             const diff = p1ShipPos - p2ShipPos;
             let p1Percent = 50 + (diff / 7) * 50;
             p1Percent = Math.max(0, Math.min(100, p1Percent));
-            
-            document.getElementById('hb-p1').style.width = `${p1Percent}%`;
-            document.getElementById('hb-p2').style.width = `${100 - p1Percent}%`;
-            document.getElementById('hb-junction').style.left = `${p1Percent}%`;
-
-            if (Math.abs(diff) >= 7) {
-                const t = i18n[currentLang];
-                setTimeout(() => window.forceEndGame(diff > 0 ? t.winP1 : t.winP2), 500);
-            }
+            document.getElementById('hb-p1').style.width = `${p1Percent}%`; document.getElementById('hb-p2').style.width = `${100 - p1Percent}%`; document.getElementById('hb-junction').style.left = `${p1Percent}%`;
+            if (Math.abs(diff) >= 7) setTimeout(() => window.forceEndGame(diff > 0 ? i18n[currentLang].winP1 : i18n[currentLang].winP2), 500);
         }
 
         function showScoreAnimation(player, delta) {
@@ -1067,213 +842,83 @@
             const rect = scoreEl.getBoundingClientRect();
             const floatEl = document.createElement('div');
             floatEl.className = 'score-float font-space';
-            floatEl.style.left = `${rect.right + 15}px`;
-            floatEl.style.top = `${rect.top - 5}px`;
-            
-            if (delta > 0) {
-                floatEl.innerText = `+${delta}`;
-                floatEl.style.color = '#4ade80';
-                floatEl.style.textShadow = '0 0 10px #16a34a';
-            } else {
-                floatEl.innerText = `${delta}`;
-                floatEl.style.color = '#ef4444';
-                floatEl.style.textShadow = '0 0 10px #dc2626';
-            }
-            document.body.appendChild(floatEl);
-            setTimeout(() => floatEl.remove(), 1000);
+            floatEl.style.left = `${rect.right + 15}px`; floatEl.style.top = `${rect.top - 5}px`;
+            if (delta > 0) { floatEl.innerText = `+${delta}`; floatEl.style.color = '#4ade80'; floatEl.style.textShadow = '0 0 10px #16a34a'; } 
+            else { floatEl.innerText = `${delta}`; floatEl.style.color = '#ef4444'; floatEl.style.textShadow = '0 0 10px #dc2626'; }
+            document.body.appendChild(floatEl); setTimeout(() => floatEl.remove(), 1000);
         }
 
         function addScore(player, pts) {
-            const oldScore = player.score;
-            player.score = Math.max(0, player.score + pts);
+            const oldScore = player.score; player.score = Math.max(0, player.score + pts);
             const delta = player.score - oldScore;
             if (delta !== 0) showScoreAnimation(player, delta);
             updateHeaderUI();
         }
 
         function applyStun(player) {
-            player.isStunned = true;
-            player.stunEndTime = Date.now() + eelDuration * 1000;
+            player.isStunned = true; player.stunEndTime = Date.now() + eelDuration * 1000;
             const ws = document.getElementById(`${player.prefix}-workspace`);
-            
             let overlay = document.getElementById(`stun-overlay-${player.prefix}`);
             if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = `stun-overlay-${player.prefix}`;
+                overlay = document.createElement('div'); overlay.id = `stun-overlay-${player.prefix}`;
                 overlay.className = "absolute inset-0 bg-yellow-400/20 backdrop-blur-[3px] z-[60] flex flex-col items-center justify-center rounded-xl pointer-events-auto border-2 border-yellow-400 shadow-[inset_0_0_20px_rgba(250,204,21,0.5)]";
                 ws.appendChild(overlay);
             }
-            
-            const t = i18n[currentLang];
-            overlay.innerHTML = `
-                <div class="text-5xl md:text-6xl animate-bounce drop-shadow-[0_0_15px_#facc15]">⚡</div>
-                <div class="text-white font-bold font-space mt-2 bg-black/80 px-4 py-2 rounded-lg text-lg md:text-xl border border-yellow-500 shadow-[0_0_10px_#facc15]" id="stun-text-${player.prefix}">⚡ ${t.stun} ${eelDuration}s</div>
-            `;
+            overlay.innerHTML = `<div class="text-5xl md:text-6xl animate-bounce drop-shadow-[0_0_15px_#facc15]">⚡</div><div class="text-white font-bold font-space mt-2 bg-black/80 px-4 py-2 rounded-lg text-lg md:text-xl border border-yellow-500 shadow-[0_0_10px_#facc15]" id="stun-text-${player.prefix}">⚡ ${i18n[currentLang].stun} ${eelDuration}s</div>`;
         }
 
         function triggerCorrectAnswer(player) {
-            player.isGenerating = true;
-            player.consecutiveWrongs = 0; 
-            document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-
+            player.isGenerating = true; player.consecutiveWrongs = 0; document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
             if(mode === 'RANKED') {
-                let timeTaken = Date.now() - player.qStart;
-                if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000;
-                soloTotalTimeMs += timeTaken;
-                const pts = Math.max(10, 120 - Math.floor(timeTaken / 1000));
-                
-                addScore(player, pts);
-                player.corrects++;
-                globalQuestionsAnswered++;
-
-                const ws = document.getElementById(`${player.prefix}-workspace`);
-                ws.classList.add('flash-correct');
-                const dzs = ws.querySelectorAll('.drop-zone.filled');
-                dzs.forEach(dz => dz.classList.add('flash-correct'));
-
-                setTimeout(() => { 
-                    ws.classList.remove('flash-correct'); 
-                    generateQuestion(player); 
-                }, 600);
-                return;
+                let timeTaken = Date.now() - player.qStart; if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000;
+                soloTotalTimeMs += timeTaken; addScore(player, Math.max(10, 120 - Math.floor(timeTaken / 1000))); player.corrects++; globalQuestionsAnswered++;
+                const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('flash-correct');
+                ws.querySelectorAll('.drop-zone.filled').forEach(dz => dz.classList.add('flash-correct'));
+                setTimeout(() => { ws.classList.remove('flash-correct'); generateQuestion(player); }, 600); return;
             }
-
             if(mode === 'PRACTICE') { showSoloFeedback(player, true); return; }
-
-            const timeTaken = Math.floor((Date.now() - player.qStart) / 1000);
-            const points = Math.max(10, 120 - timeTaken);
-            addScore(player, points);
-            player.corrects++;
-            globalQuestionsAnswered++;
-            
-            if(player.id === 1) {
-                p1ShipPos = Math.min(7, p1ShipPos + 1); p2ShipPos = Math.max(0, p2ShipPos - 1);
-                shootLaser(p1Ships[p1ShipPos], p2Ships[p2ShipPos], '#0ff');
-            } else {
-                p2ShipPos = Math.min(7, p2ShipPos + 1); p1ShipPos = Math.max(0, p1ShipPos - 1);
-                shootLaser(p2Ships[p2ShipPos], p1Ships[p1ShipPos], '#c084fc');
-            }
-
+            addScore(player, Math.max(10, 120 - Math.floor((Date.now() - player.qStart) / 1000))); player.corrects++; globalQuestionsAnswered++;
+            if(player.id === 1) { p1ShipPos = Math.min(7, p1ShipPos + 1); p2ShipPos = Math.max(0, p2ShipPos - 1); shootLaser(p1Ships[p1ShipPos], p2Ships[p2ShipPos], '#0ff'); } 
+            else { p2ShipPos = Math.min(7, p2ShipPos + 1); p1ShipPos = Math.max(0, p1ShipPos - 1); shootLaser(p2Ships[p2ShipPos], p1Ships[p1ShipPos], '#c084fc'); }
             updateHeaderUI(); updateHealthBar();
-            
-            const ws = document.getElementById(`${player.prefix}-workspace`);
-            ws.classList.add('flash-correct');
-            const dzs = ws.querySelectorAll('.drop-zone.filled');
-            dzs.forEach(dz => dz.classList.add('flash-correct'));
-
+            const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('flash-correct');
+            ws.querySelectorAll('.drop-zone.filled').forEach(dz => dz.classList.add('flash-correct'));
             setTimeout(() => { ws.classList.remove('flash-correct'); generateQuestion(player); }, 600);
         }
 
         function triggerWrongAnswer(player, isTimeout = false) {
             let qDiff = player.currentQ ? player.currentQ.difficulty : difficulty;
-            
             if (mode === 'RANKED') {
-                if (isTimeout) {
-                    player.consecutiveWrongs = 0; 
-                    generateQuestion(player);
-                    return;
-                }
-                
-                player.consecutiveWrongs++;
-                const penalty = 20 + (player.consecutiveWrongs * 33);
-                addScore(player, -penalty);
-                player.wrongAttempts++;
-
-                const ws = document.getElementById(`${player.prefix}-workspace`);
-                ws.classList.add('shake-err');
-                setTimeout(() => ws.classList.remove('shake-err'), 300);
-
-                applyStun(player); 
-                
-                player.isGenerating = true;
-                setTimeout(() => {
-                    cleanupDrags(player.id);
-                    generateQuestion(player);
-                    player.isGenerating = false;
-                }, 300);
-                return;
+                if (isTimeout) { player.consecutiveWrongs = 0; generateQuestion(player); return; }
+                player.consecutiveWrongs++; addScore(player, -(20 + (player.consecutiveWrongs * 33))); player.wrongAttempts++;
+                const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('shake-err'); setTimeout(() => ws.classList.remove('shake-err'), 300);
+                applyStun(player); player.isGenerating = true;
+                setTimeout(() => { cleanupDrags(player.id); generateQuestion(player); player.isGenerating = false; }, 300); return;
             }
-
             if(mode === 'PRACTICE') {
-                if (isTimeout) {
-                    player.isGenerating = true;
-                    player.consecutiveWrongs = 0;
-                    document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-                    showSoloFeedback(player, false, true); 
-                    return;
-                }
-                
-                player.consecutiveWrongs++;
-                const penalty = 20 + (player.consecutiveWrongs * 33);
-                addScore(player, -penalty);
-
-                player.wrongAttempts++;
-                const ws = document.getElementById(`${player.prefix}-workspace`);
-                ws.classList.add('shake-err');
-                setTimeout(() => ws.classList.remove('shake-err'), 300);
-
-                if (player.wrongAttempts >= 2 || qDiff >= 2) {
-                    player.isGenerating = true; 
-                    showSoloFeedback(player, false, false); 
-                } else {
-                    if (qDiff === 1) {
-                        if (eelEnabled) applyStun(player);
-                        player.dndState = {};
-                        cleanupDrags(player.id); 
-                        setTimeout(() => renderLevel1Workspace(player), 300);
-                    }
-                }
+                if (isTimeout) { player.isGenerating = true; player.consecutiveWrongs = 0; document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert'); showSoloFeedback(player, false, true); return; }
+                player.consecutiveWrongs++; addScore(player, -(20 + (player.consecutiveWrongs * 33))); player.wrongAttempts++;
+                const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('shake-err'); setTimeout(() => ws.classList.remove('shake-err'), 300);
+                if (player.wrongAttempts >= 2 || qDiff >= 2) { player.isGenerating = true; showSoloFeedback(player, false, false); } 
+                else if (qDiff === 1) { if (eelEnabled) applyStun(player); player.dndState = {}; cleanupDrags(player.id); setTimeout(() => renderLevel1Workspace(player), 300); }
                 return;
             }
-
-            player.isGenerating = true;
-            document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-            
-            player.consecutiveWrongs++;
-            const penalty = 20 + (player.consecutiveWrongs * 33);
-            addScore(player, -penalty); 
-            
-            player.wrongAttempts++;
-            updateHeaderUI();
-            
-            const ws = document.getElementById(`${player.prefix}-workspace`);
-            ws.classList.add('shake-err');
-            setTimeout(() => ws.classList.remove('shake-err'), 300);
-
+            player.isGenerating = true; document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
+            player.consecutiveWrongs++; addScore(player, -(20 + (player.consecutiveWrongs * 33))); player.wrongAttempts++; updateHeaderUI();
+            const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('shake-err'); setTimeout(() => ws.classList.remove('shake-err'), 300);
             if (eelEnabled && !isTimeout) applyStun(player);
-
-            if(qDiff === 2 || qDiff === 3) {
-                setTimeout(() => generateQuestion(player), 400);
-            } else {
-                if((Date.now() - player.qStart) >= (maxPersonalTime*1000) || isTimeout) { 
-                    setTimeout(() => generateQuestion(player), 400);
-                } else {
-                    setTimeout(() => {
-                        player.dndState = {}; 
-                        cleanupDrags(player.id);
-                        renderLevel1Workspace(player);
-                        player.isGenerating = false;
-                    }, 300);
-                }
+            if(qDiff === 2 || qDiff === 3) setTimeout(() => generateQuestion(player), 400);
+            else {
+                if((Date.now() - player.qStart) >= (maxPersonalTime*1000) || isTimeout) setTimeout(() => generateQuestion(player), 400);
+                else setTimeout(() => { player.dndState = {}; cleanupDrags(player.id); renderLevel1Workspace(player); player.isGenerating = false; }, 300);
             }
         }
 
         function showSoloFeedback(player, isCorrect, isTimeout = false) {
-            let timeTaken = Date.now() - player.qStart;
-            if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000;
-            soloTotalTimeMs += timeTaken;
+            let timeTaken = Date.now() - player.qStart; if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000; soloTotalTimeMs += timeTaken;
+            if (isCorrect) { addScore(player, Math.max(10, 120 - Math.floor(timeTaken / 1000))); player.corrects++; globalQuestionsAnswered++; }
 
-            if (isCorrect) {
-                const pts = Math.max(10, 120 - Math.floor(timeTaken / 1000));
-                addScore(player, pts);
-                player.corrects++;
-                globalQuestionsAnswered++;
-            }
-
-            const overlay = document.createElement('div');
-            const t = i18n[currentLang];
-            overlay.id = `practice-overlay-${player.prefix}`;
-            
+            const overlay = document.createElement('div'); const t = i18n[currentLang]; overlay.id = `practice-overlay-${player.prefix}`;
             overlay.className = "fixed top-1/2 left-2 md:left-[5vw] transform -translate-y-1/2 bg-gray-900/95 p-4 md:p-6 rounded-2xl border-2 shadow-[0_0_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col items-center justify-center min-w-[200px] md:min-w-[300px] pointer-events-auto backdrop-blur-md";
             
             if(isCorrect) {
@@ -1281,113 +926,61 @@
                 overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space drop-shadow-[0_0_10px_#4ade80]">${t.pracCorrect}</div><button onclick="window.nextSoloQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:bg-green-500 transition">▶ ${t.btnNext}</button>`;
             } else {
                 overlay.style.borderColor = "#ef4444";
-                
-                let correctStr = "";
-                const q = player.currentQ;
-                
-                let displayAns = q.answer;
+                let correctStr = ""; const q = player.currentQ; let displayAns = q.answer;
                 if (typeof displayAns === 'string' && displayAns.includes('/')) {
                     const parts = displayAns.split('/');
-                    if (!isNaN(parts[0]) && !isNaN(parts[1])) {
-                        displayAns = `<div class="inline-flex flex-col items-center leading-none mx-2 align-middle text-2xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${parts[0]}</span><span class="px-2 pt-[3px]">${parts[1]}</span></div>`;
-                    }
+                    if (!isNaN(parts[0]) && !isNaN(parts[1])) displayAns = `<div class="inline-flex flex-col items-center leading-none mx-2 align-middle text-2xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${parts[0]}</span><span class="px-2 pt-[3px]">${parts[1]}</span></div>`;
                 }
-
-                if(q.type >= 4) {
-                    correctStr = `${t.correctIs}${displayAns}`;
-                } else {
+                if(q.type >= 4) correctStr = `${t.correctIs}${displayAns}`;
+                else {
                     if(q.type === 1) correctStr = `${t.correctIs}<div class="inline-flex flex-col items-center leading-none mx-2 align-middle text-2xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${q.correctNum}</span><span class="px-2 pt-[3px]">${q.correctDen}</span></div>`;
                     else if(q.type === 2) correctStr = `${t.correctIs}${q.func}`;
                     else if(q.type === 3) correctStr = `${t.hintTheta}${q.math.o}`;
                 }
-
-                let titleStr = isTimeout ? t.pracTimeout : t.pracWrong;
-
-                overlay.innerHTML = `
-                    <div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${titleStr}</div>
-                    <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full flex items-center justify-center">${correctStr}</div>
-                    <button id="solo-next-btn-${player.id}" onclick="window.nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
-                `;
+                overlay.innerHTML = `<div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${isTimeout ? t.pracTimeout : t.pracWrong}</div><div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full flex items-center justify-center">${correctStr}</div><button id="solo-next-btn-${player.id}" onclick="window.nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>`;
 
                 if (eelEnabled && !isTimeout) {
                     setTimeout(() => {
                         const nextBtn = document.getElementById(`solo-next-btn-${player.id}`);
                         if(nextBtn) {
-                            nextBtn.disabled = true;
-                            nextBtn.classList.remove('hover:bg-red-500');
-                            nextBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
-                            let left = eelDuration;
-                            nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`;
-                            
+                            nextBtn.disabled = true; nextBtn.classList.remove('hover:bg-red-500'); nextBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
+                            let left = eelDuration; nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`;
                             const eelIntv = setInterval(() => {
                                 left--;
-                                if (left <= 0) {
-                                    clearInterval(eelIntv);
-                                    if(nextBtn) {
-                                        nextBtn.disabled = false;
-                                        nextBtn.classList.add('hover:bg-red-500');
-                                        nextBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
-                                        nextBtn.innerHTML = `▶ ${t.btnNext}`;
-                                    }
-                                } else if (nextBtn) {
-                                    nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`;
-                                }
+                                if (left <= 0) { clearInterval(eelIntv); if(nextBtn) { nextBtn.disabled = false; nextBtn.classList.add('hover:bg-red-500'); nextBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-gray-600'); nextBtn.innerHTML = `▶ ${t.btnNext}`; } } 
+                                else if (nextBtn) { nextBtn.innerHTML = `⚡ ${t.stun} ${left}s`; }
                             }, 1000);
                             overlay.dataset.eelIntv = eelIntv;
                         }
                     }, 0);
                 }
             }
-            
             document.body.appendChild(overlay);
         }
 
-        function fmt(num) {
-            if(typeof num !== 'number') return num; 
-            if(Number.isInteger(num)) return num;
-            return Number(num.toPrecision(3)); 
-        }
+        function fmt(num) { return (typeof num !== 'number' || Number.isInteger(num)) ? num : Number(num.toPrecision(3)); }
 
         function animateValue(obj, start, end, duration) {
             let startTimestamp = null;
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                const easeOutProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
-                obj.innerHTML = Math.floor(easeOutProgress * (end - start) + start);
-                if (progress < 1) window.requestAnimationFrame(step);
-                else obj.innerHTML = end; 
+                obj.innerHTML = Math.floor((progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)) * (end - start) + start);
+                if (progress < 1) window.requestAnimationFrame(step); else obj.innerHTML = end; 
             };
             window.requestAnimationFrame(step);
         }
 
         function endGame(reason) {
-            gameState = 'END';
-            isPaused = false;
-            clearInterval(mainTimer);
-            document.getElementById('gameUI').classList.add('hidden');
-            
-            document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => {
-                if(el.dataset.eelIntv) clearInterval(parseInt(el.dataset.eelIntv));
-                el.remove();
-            });
+            gameState = 'END'; isPaused = false; clearInterval(mainTimer); document.getElementById('gameUI').classList.add('hidden');
+            document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => { if(el.dataset.eelIntv) clearInterval(parseInt(el.dataset.eelIntv)); el.remove(); });
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
-
-            document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
-            activeDrags = {};
-
-            const endScr = document.getElementById('endScreen');
-            endScr.classList.remove('hidden');
-            
-            playMenuMusic();
-
+            document.querySelectorAll('.ghost-drag').forEach(el => el.remove()); activeDrags = {};
+            document.getElementById('endScreen').classList.remove('hidden'); playMenuMusic();
             const t = i18n[currentLang];
 
             if(mode === 'PRACTICE' || mode === 'RANKED') {
-                document.getElementById('p2-res-box').classList.add('hidden');
-                document.getElementById('res-time-box1').classList.remove('hidden');
-                document.getElementById('res-time1').innerText = (soloTotalTimeMs / 1000).toFixed(1);
-                
+                document.getElementById('p2-res-box').classList.add('hidden'); document.getElementById('res-time-box1').classList.remove('hidden'); document.getElementById('res-time1').innerText = (soloTotalTimeMs / 1000).toFixed(1);
                 if (mode === 'RANKED') {
                     document.getElementById('leaderboard-box').classList.remove('hidden');
                     document.getElementById('leaderboard-list').innerHTML = '<div class="text-center text-cyan-400 py-3 font-bold animate-pulse">正在同步成績至雲端...</div>';
@@ -1398,432 +991,186 @@
                     let pid = `${rankData.grade}-${rankData.cls}-${rankData.sid}`; 
 
                     if (Number(p1.score) > 0) {
-                        let newEntry = { 
-                            pid: pid, 
-                            name: entryName, 
-                            score: Number(p1.score), 
-                            corrects: Number(p1.corrects), 
-                            acc: accNum, 
-                            time: Date.now() 
-                        };
-
-                        let lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
-                        lb = lb.filter(e => (Number(e.score) || 0) > 0);
-                        let existingIdx = lb.findIndex(e => e.pid === pid);
-                        if (existingIdx !== -1) {
-                            if (newEntry.score > lb[existingIdx].score || (newEntry.score === lb[existingIdx].score && newEntry.acc > lb[existingIdx].acc)) {
-                                lb[existingIdx] = newEntry;
-                            }
-                        } else {
-                            lb.push(newEntry);
-                        }
+                        let newEntry = { pid: pid, name: entryName, score: Number(p1.score), corrects: Number(p1.corrects), acc: accNum, time: Date.now(), rule: rankData.rule };
+                        let lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]'); lb = lb.filter(e => (Number(e.score) || 0) > 0);
+                        let existingIdx = lb.findIndex(e => e.pid === pid && (e.rule || 'time') === rankData.rule);
+                        if (existingIdx !== -1) { if (newEntry.score > lb[existingIdx].score || (newEntry.score === lb[existingIdx].score && newEntry.acc > lb[existingIdx].acc)) lb[existingIdx] = newEntry; } 
+                        else lb.push(newEntry);
                         lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
-                        lb = lb.slice(0, 10);
-                        localStorage.setItem('trigowar_ranked_lb', JSON.stringify(lb));
+                        lb = lb.slice(0, 50); localStorage.setItem('trigowar_ranked_lb', JSON.stringify(lb));
                         
                         let players = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
                         if (!players[pid]) players[pid] = { name: entryName, totalScore: 0, nick: rankData.nick };
-                        players[pid].name = entryName; 
-                        players[pid].nick = rankData.nick; 
+                        players[pid].name = entryName; players[pid].nick = rankData.nick; 
                         players[pid].totalScore = (Number(players[pid].totalScore) || 0) + newEntry.score;
                         localStorage.setItem('trigowar_players', JSON.stringify(players));
 
-                        if (GAS_URL.startsWith("http")) {
-                            submitScoreToCloud(newEntry);
-                        } else {
-                            renderRankedLeaderboard();
-                        }
+                        if (GAS_URL.startsWith("http")) submitScoreToCloud(newEntry);
+                        else { renderInitLeaderboards(); renderRankedLeaderboard(); }
                     } else {
-                        if (GAS_URL.startsWith("http")) {
-                            fetchLeaderboards();
-                        } else {
-                            renderRankedLeaderboard();
-                        }
+                        if (GAS_URL.startsWith("http")) fetchLeaderboards();
+                        else { renderInitLeaderboards(); renderRankedLeaderboard(); }
                     }
-                } else {
-                    document.getElementById('leaderboard-box').classList.add('hidden');
-                }
+                } else document.getElementById('leaderboard-box').classList.add('hidden');
             } else {
-                document.getElementById('p2-res-box').classList.remove('hidden');
-                document.getElementById('res-time-box1').classList.add('hidden');
-                document.getElementById('leaderboard-box').classList.add('hidden');
+                document.getElementById('p2-res-box').classList.remove('hidden'); document.getElementById('res-time-box1').classList.add('hidden'); document.getElementById('leaderboard-box').classList.add('hidden');
             }
 
             let finalReason = reason;
-
             if (!reason) {
-                if (mode === 'RANKED' || mode === 'PRACTICE') {
-                    finalReason = t.missionComplete;
-                } else {
-                    if (p1.score > p2.score) finalReason = t.winP1;
-                    else if (p2.score > p1.score) finalReason = t.winP2;
-                    else finalReason = t.draw;
-                }
+                if (mode === 'RANKED' || mode === 'PRACTICE') finalReason = t.missionComplete;
+                else finalReason = p1.score > p2.score ? t.winP1 : (p2.score > p1.score ? t.winP2 : t.draw);
             }
             document.getElementById('endTitle').innerText = finalReason;
-
-            animateValue(document.getElementById('res-score1'), 0, p1.score, 3000);
-            animateValue(document.getElementById('res-cor1'), 0, p1.corrects, 2000);
-            if(mode !== 'PRACTICE' && mode !== 'RANKED') {
-                animateValue(document.getElementById('res-score2'), 0, p2.score, 3000);
-                animateValue(document.getElementById('res-cor2'), 0, p2.corrects, 2000);
-            }
-        }
-
-        function generateOptions(ans, allStr = false) {
-            let opts = [ans];
-            while(opts.length < 4) {
-                let fake = Math.floor(Math.random() * 30) + 1;
-                if(allStr) fake = fake.toString();
-                if(!opts.includes(fake) && fake !== ans) opts.push(fake);
-            }
-            return opts.sort(() => Math.random() - 0.5);
+            animateValue(document.getElementById('res-score1'), 0, p1.score, 3000); animateValue(document.getElementById('res-cor1'), 0, p1.corrects, 2000);
+            if(mode !== 'PRACTICE' && mode !== 'RANKED') { animateValue(document.getElementById('res-score2'), 0, p2.score, 3000); animateValue(document.getElementById('res-cor2'), 0, p2.corrects, 2000); }
         }
 
         function generateQuestion(player) {
             cleanupDrags(player.id); 
-
-            player.qStart = Date.now();
-            player.isGenerating = false;
-            player.dndState = {};
-            player.wrongAttempts = 0;
+            player.qStart = Date.now(); player.isGenerating = false; player.dndState = {}; player.wrongAttempts = 0;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
             
             let qDiff = difficulty;
-            if (mode === 'RANKED') {
-                let rand = Math.floor(Math.random() * 20); 
-                qDiff = rand < 10 ? 1 : (rand < 17 ? 2 : 3); 
-            }
+            if (mode === 'RANKED') { let rand = Math.floor(Math.random() * 20); qDiff = rand < 10 ? 1 : (rand < 17 ? 2 : 3); }
 
             let o, a, h;
-            const useLetters = qDiff === 1 && Math.random() > 0.5;
-            if(useLetters) {
+            if(qDiff === 1 && Math.random() > 0.5) {
                 const lSets = [['a', 'b', 'c'], ['x', 'y', 'z'], ['p', 'q', 'r']];
                 const ls = lSets[Math.floor(Math.random() * lSets.length)];
                 o = ls[0]; a = ls[1]; h = ls[2];
             } else {
                 const baseTriple = pythagoreanTriples[Math.floor(Math.random() * pythagoreanTriples.length)];
                 const swap = Math.random() > 0.5;
-                o = swap ? baseTriple.a : baseTriple.o;
-                a = swap ? baseTriple.o : baseTriple.a;
-                h = baseTriple.h;
+                o = swap ? baseTriple.a : baseTriple.o; a = swap ? baseTriple.o : baseTriple.a; h = baseTriple.h;
             }
             
-            const funcs = ['sin', 'cos', 'tan'];
-            const func = funcs[Math.floor(Math.random() * funcs.length)];
-            const rot = Math.floor(Math.random() * 360); 
-            
-            let q = { math: {o, a, h}, func, type: 0, rotation: rot, isComposite: false, difficulty: qDiff };
-            q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
-            q.correctDen = func === 'tan' ? a : h;
+            const funcs = ['sin', 'cos', 'tan']; const func = funcs[Math.floor(Math.random() * funcs.length)];
+            let q = { math: {o, a, h}, func, type: 0, rotation: Math.floor(Math.random() * 360), isComposite: false, difficulty: qDiff };
+            q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o); q.correctDen = func === 'tan' ? a : h;
 
             if (qDiff === 3) {
                 const pair = doubleTriples[Math.floor(Math.random() * doubleTriples.length)];
                 const swapLR = Math.random() > 0.5;
-                const a1 = swapLR ? pair.a2 : pair.a1;
-                const h1 = swapLR ? pair.h2 : pair.h1;
-                const a2 = swapLR ? pair.a1 : pair.a2;
-                const h2 = swapLR ? pair.h1 : pair.h2;
-                const comm_o = pair.o;
-
-                q.math = { o: comm_o, a1, h1, a2, h2 };
-                q.isComposite = true;
-                
-                q.targetAngle = Math.random() > 0.5 ? 'left' : 'right';
+                q.math = { o: pair.o, a1: swapLR ? pair.a2 : pair.a1, h1: swapLR ? pair.h2 : pair.h1, a2: swapLR ? pair.a1 : pair.a2, h2: swapLR ? pair.h1 : pair.h2 };
+                q.isComposite = true; q.targetAngle = Math.random() > 0.5 ? 'left' : 'right';
                 const angleChar = q.targetAngle === 'left' ? 'α' : 'β';
-
                 q.type = Math.floor(Math.random() * 3) + 6; 
                 
                 if (q.type === 6) {
-                    q.labels = { o: comm_o, a1, h1, a2, h2 };
+                    q.labels = { o: pair.o, a1: q.math.a1, h1: q.math.h1, a2: q.math.a2, h2: q.math.h2 };
                     q.func = funcs[Math.floor(Math.random() * funcs.length)];
-                    let correctAns;
-                    if (q.targetAngle === 'left') {
-                        if(q.func === 'sin') correctAns = `${comm_o}/${h1}`;
-                        else if(q.func === 'cos') correctAns = `${a1}/${h1}`;
-                        else correctAns = `${comm_o}/${a1}`;
-                    } else {
-                        if(q.func === 'sin') correctAns = `${comm_o}/${h2}`;
-                        else if(q.func === 'cos') correctAns = `${a2}/${h2}`;
-                        else correctAns = `${comm_o}/${a2}`;
-                    }
-
+                    let correctAns = q.targetAngle === 'left' ? (q.func === 'sin' ? `${pair.o}/${q.math.h1}` : (q.func === 'cos' ? `${q.math.a1}/${q.math.h1}` : `${pair.o}/${q.math.a1}`)) : (q.func === 'sin' ? `${pair.o}/${q.math.h2}` : (q.func === 'cos' ? `${q.math.a2}/${q.math.h2}` : `${pair.o}/${q.math.a2}`));
                     let opts = [correctAns];
-                    while(opts.length < 4) {
-                        opts.push(`${Math.floor(Math.random()*15)+1}/${Math.floor(Math.random()*20)+1}`);
-                        opts = [...new Set(opts)];
-                    }
-                    q.options = opts.sort(() => Math.random() - 0.5);
-                    q.answer = correctAns;
-                    q.prompt = `${q.func}(${angleChar}) = ?`;
+                    while(opts.length < 4) { opts.push(`${Math.floor(Math.random()*15)+1}/${Math.floor(Math.random()*20)+1}`); opts = [...new Set(opts)]; }
+                    q.options = opts.sort(() => Math.random() - 0.5); q.answer = correctAns; q.prompt = `${q.func}(${angleChar}) = ?`;
                 } else if (q.type === 7) {
-                    q.labels = { o: comm_o, a1, h1, a2, h2 };
-                    let thetaDeg = q.targetAngle === 'left' ? (Math.atan2(comm_o, a1) * 180 / Math.PI) : (Math.atan2(comm_o, a2) * 180 / Math.PI);
+                    q.labels = { o: pair.o, a1: q.math.a1, h1: q.math.h1, a2: q.math.a2, h2: q.math.h2 };
+                    let thetaDeg = q.targetAngle === 'left' ? (Math.atan2(pair.o, q.math.a1) * 180 / Math.PI) : (Math.atan2(pair.o, q.math.a2) * 180 / Math.PI);
                     q.answer = fmt(thetaDeg) + "°";
-                    
                     let opts = [q.answer];
-                    while(opts.length < 4) {
-                        let fakeTheta = thetaDeg + (Math.random() * 40 - 20);
-                        if(fakeTheta < 1 || fakeTheta > 89) fakeTheta = Math.random() * 89 + 1;
-                        let fake = fmt(fakeTheta) + "°";
-                        if(!opts.includes(fake)) opts.push(fake);
-                    }
-                    q.options = opts.sort(() => Math.random() - 0.5);
-                    q.prompt = `${angleChar} = ?`;
+                    while(opts.length < 4) { let fakeTheta = thetaDeg + (Math.random() * 40 - 20); if(fakeTheta < 1 || fakeTheta > 89) fakeTheta = Math.random() * 89 + 1; opts.push(fmt(fakeTheta) + "°"); opts = [...new Set(opts)]; }
+                    q.options = opts.sort(() => Math.random() - 0.5); q.prompt = `${angleChar} = ?`;
                 } else if (q.type === 8) {
-                    q.func = funcs[Math.floor(Math.random() * funcs.length)];
-                    let givenRatio = "";
-                    let sideToShow = "";
-                    
+                    q.func = funcs[Math.floor(Math.random() * funcs.length)]; let givenRatio = ""; let sideToShow = "";
                     if (q.targetAngle === 'left') {
-                        if(q.func === 'sin') { givenRatio = `${comm_o}/${h1}`; sideToShow = 'h1'; }
-                        else if(q.func === 'cos') { givenRatio = `${a1}/${h1}`; sideToShow = 'h1'; }
-                        else { givenRatio = `${comm_o}/${a1}`; sideToShow = 'a1'; }
-                        
-                        const askSide = Math.random() > 0.5 ? 'h2' : 'a2';
-                        const otherSide = askSide === 'h2' ? 'a2' : 'h2';
-                        
-                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' };
-                        q.labels[sideToShow] = (sideToShow === 'h1' ? h1 : a1);
-                        q.labels[otherSide] = (otherSide === 'h2' ? h2 : a2);
-                        q.labels[askSide] = 'x';
-                        
-                        q.answer = (askSide === 'h2' ? h2 : a2).toString();
+                        if(q.func === 'sin') { givenRatio = `${pair.o}/${q.math.h1}`; sideToShow = 'h1'; } else if(q.func === 'cos') { givenRatio = `${q.math.a1}/${q.math.h1}`; sideToShow = 'h1'; } else { givenRatio = `${pair.o}/${q.math.a1}`; sideToShow = 'a1'; }
+                        const askSide = Math.random() > 0.5 ? 'h2' : 'a2'; const otherSide = askSide === 'h2' ? 'a2' : 'h2';
+                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' }; q.labels[sideToShow] = (sideToShow === 'h1' ? q.math.h1 : q.math.a1); q.labels[otherSide] = (otherSide === 'h2' ? q.math.h2 : q.math.a2); q.labels[askSide] = 'x';
+                        q.answer = (askSide === 'h2' ? q.math.h2 : q.math.a2).toString();
                     } else {
-                        if(q.func === 'sin') { givenRatio = `${comm_o}/${h2}`; sideToShow = 'h2'; }
-                        else if(q.func === 'cos') { givenRatio = `${a2}/${h2}`; sideToShow = 'h2'; }
-                        else { givenRatio = `${comm_o}/${a2}`; sideToShow = 'a2'; }
-                        
-                        const askSide = Math.random() > 0.5 ? 'h1' : 'a1';
-                        const otherSide = askSide === 'h1' ? 'a1' : 'h1';
-                        
-                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' };
-                        q.labels[sideToShow] = (sideToShow === 'h2' ? h2 : a2);
-                        q.labels[otherSide] = (otherSide === 'h1' ? h1 : a1);
-                        q.labels[askSide] = 'x';
-                        
-                        q.answer = (askSide === 'h1' ? h1 : a1).toString();
+                        if(q.func === 'sin') { givenRatio = `${pair.o}/${q.math.h2}`; sideToShow = 'h2'; } else if(q.func === 'cos') { givenRatio = `${q.math.a2}/${q.math.h2}`; sideToShow = 'h2'; } else { givenRatio = `${pair.o}/${q.math.a2}`; sideToShow = 'a2'; }
+                        const askSide = Math.random() > 0.5 ? 'h1' : 'a1'; const otherSide = askSide === 'h1' ? 'a1' : 'h1';
+                        q.labels = { o: '', a1: '', h1: '', a2: '', h2: '' }; q.labels[sideToShow] = (sideToShow === 'h2' ? q.math.h2 : q.math.a2); q.labels[otherSide] = (otherSide === 'h1' ? q.math.h1 : q.math.a1); q.labels[askSide] = 'x';
+                        q.answer = (askSide === 'h1' ? q.math.h1 : q.math.a1).toString();
                     }
-                    
                     q.prompt = `若 ${q.func}(${angleChar}) = ${givenRatio}，求 x = ?`;
-                    
                     let opts = [q.answer];
-                    while(opts.length < 4) {
-                        let fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) - 4).toString();
-                        if(fake <= 0) fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) + 1).toString();
-                        if(!opts.includes(fake) && fake !== q.answer) opts.push(fake);
-                    }
+                    while(opts.length < 4) { let fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) - 4).toString(); if(fake <= 0) fake = (parseInt(q.answer) + Math.floor(Math.random() * 10) + 1).toString(); opts.push(fake); opts = [...new Set(opts)]; }
                     q.options = opts.sort(() => Math.random() - 0.5);
                 }
-                
-                player.currentQ = q;
-                renderLevel3Workspace(player, q);
-                return;
+                player.currentQ = q; renderLevel3Workspace(player, q); return;
             }
 
-            if(qDiff === 2) {
-                q.type = Math.floor(Math.random() * 5) + 1; 
-            } else {
-                q.type = Math.floor(Math.random() * 3) + 1; 
-            }
+            q.type = (qDiff === 2) ? Math.floor(Math.random() * 5) + 1 : Math.floor(Math.random() * 3) + 1; 
 
             if(q.type >= 4) {
                 if (q.type === 4) {
                     let correctAns = func === 'sin' ? `${o}/${h}` : (func === 'cos' ? `${a}/${h}` : `${o}/${a}`);
                     let opts = [correctAns, `${a}/${h}`, `${o}/${a}`, `${h}/${o}`];
-                    if(func==='cos'){ opts[1] = `${o}/${h}`; opts[2] = `${a}/${o}`; }
-                    if(func==='tan'){ opts[1] = `${h}/${a}`; opts[3] = `${a}/${o}`; }
-                    q.options = [...new Set(opts)];
-                    while(q.options.length < 4) {
-                        q.options.push(`${Math.floor(Math.random()*10)+1}/${Math.floor(Math.random()*15)+1}`);
-                        q.options = [...new Set(q.options)];
-                    }
-                    q.options.sort(() => Math.random() - 0.5);
-                    q.answer = correctAns;
+                    if(func==='cos'){ opts[1] = `${o}/${h}`; opts[2] = `${a}/${o}`; } if(func==='tan'){ opts[1] = `${h}/${a}`; opts[3] = `${a}/${o}`; }
+                    q.options = [...new Set(opts)]; while(q.options.length < 4) { q.options.push(`${Math.floor(Math.random()*10)+1}/${Math.floor(Math.random()*15)+1}`); q.options = [...new Set(q.options)]; }
+                    q.options.sort(() => Math.random() - 0.5); q.answer = correctAns;
                 } else if (q.type === 5) {
-                    let op = Math.floor(Math.random() * 15) + 3;
-                    let ad = Math.floor(Math.random() * 15) + 3;
-                    let hy = Math.sqrt(op*op + ad*ad);
-                    
-                    q.math = { o: fmt(op), a: fmt(ad), h: fmt(hy) };
-                    let thetaDeg = Math.atan2(op, ad) * 180 / Math.PI;
-                    q.answer = fmt(thetaDeg) + "°";
-                    
-                    let opts = [q.answer];
-                    while(opts.length < 4) {
-                        let fakeTheta = thetaDeg + (Math.random() * 40 - 20);
-                        if(fakeTheta < 1 || fakeTheta > 89) fakeTheta = Math.random() * 89 + 1;
-                        let fake = fmt(fakeTheta) + "°";
-                        if(!opts.includes(fake)) opts.push(fake);
-                    }
-                    q.options = opts.sort(() => Math.random() - 0.5);
-                    q.promptType5 = `θ = ?`;
+                    let op = Math.floor(Math.random() * 15) + 3; let ad = Math.floor(Math.random() * 15) + 3; let hy = Math.sqrt(op*op + ad*ad);
+                    q.math = { o: fmt(op), a: fmt(ad), h: fmt(hy) }; let thetaDeg = Math.atan2(op, ad) * 180 / Math.PI; q.answer = fmt(thetaDeg) + "°";
+                    let opts = [q.answer]; while(opts.length < 4) { let fakeTheta = thetaDeg + (Math.random() * 40 - 20); if(fakeTheta < 1 || fakeTheta > 89) fakeTheta = Math.random() * 89 + 1; opts.push(fmt(fakeTheta) + "°"); opts = [...new Set(opts)]; }
+                    q.options = opts.sort(() => Math.random() - 0.5); q.promptType5 = `θ = ?`;
                 }
                 player.currentQ = q; renderLevel2Workspace(player, q);
-            } else {
-                player.currentQ = q; renderLevel1Workspace(player);
-            }
+            } else { player.currentQ = q; renderLevel1Workspace(player); }
         }
 
         function getSVG(o, a, h, config) {
-            const size = 350; 
-            const pad = 80; 
-            
-            let mockO = typeof o === 'string' ? 5 : o;
-            let mockA = typeof a === 'string' ? 5 : a;
+            const size = 300; const pad = 70; 
+            let mockO = typeof o === 'string' ? 5 : o; let mockA = typeof a === 'string' ? 5 : a;
             const scale = Math.min((size - pad*2) / mockA, (size - pad*2) / mockO);
-            const drawA = mockA * scale;
-            const drawO = mockO * scale;
-            
+            const drawA = mockA * scale; const drawO = mockO * scale;
             const pRightX = size - pad; const pRightY = size - pad + 15; 
             const pBotLeftX = pRightX - drawA; const pBotLeftY = pRightY;
             const pTopRightX = pRightX; const pTopRightY = pRightY - drawO;
-
-            const cx = (pBotLeftX + pRightX + pTopRightX) / 3;
-            const cy = (pBotLeftY + pRightY + pTopRightY) / 3;
+            const cx = (pBotLeftX + pRightX + pTopRightX) / 3; const cy = (pBotLeftY + pRightY + pTopRightY) / 3;
             const rot = config.rotation || 0;
+            function rotatePoint(x, y) { const rad = rot * Math.PI / 180; return {x: Math.cos(rad)*(x-cx) - Math.sin(rad)*(y-cy) + cx, y: Math.sin(rad)*(x-cx) + Math.cos(rad)*(y-cy) + cy}; }
 
-            function rotatePoint(x, y) {
-                const rad = rot * Math.PI / 180;
-                const nx = Math.cos(rad)*(x-cx) - Math.sin(rad)*(y-cy) + cx;
-                const ny = Math.sin(rad)*(x-cx) + Math.cos(rad)*(y-cy) + cy;
-                return {x: nx, y: ny};
-            }
-
-            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
-            svg += `<g transform="rotate(${rot}, ${cx}, ${cy})">`;
-            svg += `<polygon points="${pBotLeftX},${pBotLeftY} ${pRightX},${pRightY} ${pTopRightX},${pTopRightY}" class="svg-tri ${config.colorClass}"/>`;
-            svg += `<polyline points="${pRightX-12},${pRightY} ${pRightX-12},${pRightY-12} ${pRightX},${pRightY-12}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
-
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;"><g transform="rotate(${rot}, ${cx}, ${cy})"><polygon points="${pBotLeftX},${pBotLeftY} ${pRightX},${pRightY} ${pTopRightX},${pTopRightY}" class="svg-tri ${config.colorClass}"/><polyline points="${pRightX-12},${pRightY} ${pRightX-12},${pRightY-12} ${pRightX},${pRightY-12}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
             if(config.showTheta) {
                 const angleRad = Math.atan2(-drawO, drawA);
-                if(config.thetaPos === 'bottom') {
-                    svg += `<path d="M ${pBotLeftX+20} ${pBotLeftY} A 20 20 0 0 0 ${pBotLeftX + 20*Math.cos(angleRad)} ${pBotLeftY + 20*Math.sin(angleRad)}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
-                } else {
-                    svg += `<path d="M ${pTopRightX-20} ${pTopRightY} A 20 20 0 0 0 ${pTopRightX} ${pTopRightY+20}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
-                }
+                if(config.thetaPos === 'bottom') svg += `<path d="M ${pBotLeftX+20} ${pBotLeftY} A 20 20 0 0 0 ${pBotLeftX + 20*Math.cos(angleRad)} ${pBotLeftY + 20*Math.sin(angleRad)}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
+                else svg += `<path d="M ${pTopRightX-20} ${pTopRightY} A 20 20 0 0 0 ${pTopRightX} ${pTopRightY+20}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
             }
             svg += `</g>`;
-
-            let dropZoneA = rotatePoint(pBotLeftX, pBotLeftY);
-            let dropZoneC = rotatePoint(pTopRightX, pTopRightY);
+            let dropZoneA = rotatePoint(pBotLeftX, pBotLeftY); let dropZoneC = rotatePoint(pTopRightX, pTopRightY);
 
             if(config.showSides) {
-                function getTextPos(p1X, p1Y, p2X, p2Y) {
-                    const rp1 = rotatePoint(p1X, p1Y); const rp2 = rotatePoint(p2X, p2Y);
-                    const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2;
-                    const dx = midX - cx; const dy = midY - cy;
-                    const len = Math.hypot(dx, dy) || 1;
-                    return {x: midX + (dx/len)*20, y: midY + (dy/len)*20}; 
-                }
-                const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY);
-                const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY);
-                const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
-
+                function getTextPos(p1X, p1Y, p2X, p2Y) { const rp1 = rotatePoint(p1X, p1Y); const rp2 = rotatePoint(p2X, p2Y); const midX = (rp1.x + rp2.x)/2; const midY = (rp1.y + rp2.y)/2; const dx = midX - cx; const dy = midY - cy; const len = Math.hypot(dx, dy) || 1; return {x: midX + (dx/len)*20, y: midY + (dy/len)*20}; }
                 const textStyle = `fill="#ffffff" font-size="17" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;"`;
-                
-                svg += `<text x="${posA.x}" y="${posA.y + 6}" ${textStyle}>${a}</text>`;
-                svg += `<text x="${posO.x}" y="${posO.y + 6}" ${textStyle}>${o}</text>`;
-                svg += `<text x="${posH.x}" y="${posH.y + 6}" ${textStyle}>${h}</text>`;
+                const posA = getTextPos(pBotLeftX, pBotLeftY, pRightX, pRightY); const posO = getTextPos(pRightX, pRightY, pTopRightX, pTopRightY); const posH = getTextPos(pTopRightX, pTopRightY, pBotLeftX, pBotLeftY);
+                svg += `<text x="${posA.x}" y="${posA.y + 6}" ${textStyle}>${a}</text><text x="${posO.x}" y="${posO.y + 6}" ${textStyle}>${o}</text><text x="${posH.x}" y="${posH.y + 6}" ${textStyle}>${h}</text>`;
             }
-
             if(config.showTheta) {
-                function getThetaPos(angX, angY) {
-                    const ra = rotatePoint(angX, angY);
-                    const dx = ra.x - cx; const dy = ra.y - cy;
-                    const len = Math.hypot(dx, dy) || 1;
-                    return {x: ra.x - (dx/len)*38, y: ra.y - (dy/len)*38}; 
-                }
+                function getThetaPos(angX, angY) { const ra = rotatePoint(angX, angY); const dx = ra.x - cx; const dy = ra.y - cy; const len = Math.hypot(dx, dy) || 1; return {x: ra.x - (dx/len)*38, y: ra.y - (dy/len)*38}; }
                 let tPos = config.thetaPos === 'bottom' ? getThetaPos(pBotLeftX, pBotLeftY) : getThetaPos(pTopRightX, pTopRightY);
                 svg += `<text x="${tPos.x}" y="${tPos.y + 6}" fill="#ffeb3b" font-weight="bold" text-anchor="middle" font-size="20" style="text-shadow: 1px 1px 2px #000;">θ</text>`;
             }
-
-            svg += `</svg>`;
-            return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
+            svg += `</svg>`; return { html: svg, coords: { bl: dropZoneA, tr: dropZoneC, scaleSize: size } };
         }
 
         function getCompositeSVG(q, config) {
-            const size = 350;
-            const pad = 75; 
-            const totalW = q.math.a1 + q.math.a2;
-            const maxW = size - pad * 2;
-            const maxH = size - pad * 2;
-            const scale = Math.min(maxW / totalW, maxH / q.math.o);
+            const size = 300; const pad = 50; 
+            const totalW = q.math.a1 + q.math.a2; const maxW = size - pad * 2; const maxH = size - pad * 2; const scale = Math.min(maxW / totalW, maxH / q.math.o);
+            const drawA1 = q.math.a1 * scale; const drawA2 = q.math.a2 * scale; const drawO = q.math.o * scale;
+            const cx = size / 2 + (drawA1 - drawA2) / 2; const cy = size - pad + 20;
+            const pTop = { x: cx, y: cy - drawO }; const pBot = { x: cx, y: cy }; const pLeft = { x: cx - drawA1, y: cy }; const pRight = { x: cx + drawA2, y: cy };
+            const rot = config.rotation || 0; const rotCx = size / 2; const rotCy = size / 2;
 
-            const drawA1 = q.math.a1 * scale;
-            const drawA2 = q.math.a2 * scale;
-            const drawO = q.math.o * scale;
-
-            const cx = size / 2 + (drawA1 - drawA2) / 2; 
-            const cy = size - pad + 20;
-
-            const pTop = { x: cx, y: cy - drawO };
-            const pBot = { x: cx, y: cy };
-            const pLeft = { x: cx - drawA1, y: cy };
-            const pRight = { x: cx + drawA2, y: cy };
-
-            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;">`;
-            
-            const rot = config.rotation || 0;
-            const rotCx = size / 2;
-            const rotCy = size / 2;
-
-            svg += `<g transform="rotate(${rot}, ${rotCx}, ${rotCy})">`;
-
-            svg += `<polygon points="${pLeft.x},${pLeft.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.02)"/>`;
-            svg += `<polygon points="${pRight.x},${pRight.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.05)"/>`;
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow: visible;"><g transform="rotate(${rot}, ${rotCx}, ${rotCy})">`;
+            svg += `<polygon points="${pLeft.x},${pLeft.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.02)"/><polygon points="${pRight.x},${pRight.y} ${pBot.x},${pBot.y} ${pTop.x},${pTop.y}" class="svg-tri ${config.colorClass}" fill="rgba(255,255,255,0.05)"/>`;
 
             const { labels, targetAngle } = q;
+            if (labels.o || labels.o === 'x') svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
+            else svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
 
-            if (labels.o || labels.o === 'x') {
-                svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.8)" stroke-width="2"/>`;
-            } else {
-                svg += `<line x1="${pBot.x}" y1="${pBot.y}" x2="${pTop.x}" y2="${pTop.y}" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-dasharray="5,5"/>`;
-            }
-
-            svg += `<polyline points="${pBot.x-10},${pBot.y} ${pBot.x-10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
-            svg += `<polyline points="${pBot.x+10},${pBot.y} ${pBot.x+10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
+            svg += `<polyline points="${pBot.x-10},${pBot.y} ${pBot.x-10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/><polyline points="${pBot.x+10},${pBot.y} ${pBot.x+10},${pBot.y-10} ${pBot.x},${pBot.y-10}" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>`;
 
             const arcR = 25;
-            if (targetAngle === 'left' || targetAngle === 'both') {
-                const aRad1 = Math.atan2(drawO, drawA1);
-                const endX1 = pLeft.x + arcR * Math.cos(aRad1);
-                const endY1 = pLeft.y - arcR * Math.sin(aRad1);
-                svg += `<path d="M ${pLeft.x + arcR} ${pLeft.y} A ${arcR} ${arcR} 0 0 0 ${endX1} ${endY1}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
-            }
-            if (targetAngle === 'right' || targetAngle === 'both') {
-                const aRad2 = Math.atan2(drawO, drawA2);
-                const startX2 = pRight.x - arcR;
-                const endX2 = pRight.x - arcR * Math.cos(aRad2);
-                const endY2 = pRight.y - arcR * Math.sin(aRad2);
-                svg += `<path d="M ${startX2} ${pRight.y} A ${arcR} ${arcR} 0 0 1 ${endX2} ${endY2}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`;
-            }
-
+            if (targetAngle === 'left' || targetAngle === 'both') { const aRad1 = Math.atan2(drawO, drawA1); svg += `<path d="M ${pLeft.x + arcR} ${pLeft.y} A ${arcR} ${arcR} 0 0 0 ${pLeft.x + arcR * Math.cos(aRad1)} ${pLeft.y - arcR * Math.sin(aRad1)}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`; }
+            if (targetAngle === 'right' || targetAngle === 'both') { const aRad2 = Math.atan2(drawO, drawA2); svg += `<path d="M ${pRight.x - arcR} ${pRight.y} A ${arcR} ${arcR} 0 0 1 ${pRight.x - arcR * Math.cos(aRad2)} ${pRight.y - arcR * Math.sin(aRad2)}" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`; }
             svg += `</g>`;
 
-            function getRotatedTextPos(x, y) {
-                const rad = rot * Math.PI / 180;
-                const nx = Math.cos(rad)*(x-rotCx) - Math.sin(rad)*(y-rotCy) + rotCx;
-                const ny = Math.sin(rad)*(x-rotCx) + Math.cos(rad)*(y-rotCy) + rotCy;
-                return {x: nx, y: ny};
-            }
-
-            const drawLabel = (pos, text, isX = false) => {
-                if (!text && text !== 0 && text !== '0') return "";
-                const color = isX ? "#ffeb3b" : "#ffffff";
-                const size = isX ? "22" : "17";
-                return `<text x="${pos.x}" y="${pos.y+6}" fill="${color}" font-size="${size}" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;">${text}</text>`;
-            };
-
-            const textOffset = (p1, p2, offset, swap) => {
-                const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2;
-                const vx = p2.x - p1.x; const vy = p2.y - p1.y; 
-                let nx = -vy; let ny = vx;
-                if (swap) { nx = vy; ny = -vx; }
-                const len = Math.hypot(nx, ny) || 1;
-                const rotP = getRotatedTextPos(midX + (nx/len)*offset, midY + (ny/len)*offset);
-                return {x: rotP.x, y: rotP.y};
-            }
+            function getRotatedTextPos(x, y) { const rad = rot * Math.PI / 180; return {x: Math.cos(rad)*(x-rotCx) - Math.sin(rad)*(y-rotCy) + rotCx, y: Math.sin(rad)*(x-rotCx) + Math.cos(rad)*(y-rotCy) + rotCy}; }
+            const drawLabel = (pos, text, isX = false) => (!text && text !== 0 && text !== '0') ? "" : `<text x="${pos.x}" y="${pos.y+6}" fill="${isX ? '#ffeb3b' : '#ffffff'}" font-size="${isX ? '22' : '17'}" font-family="Noto Sans TC, sans-serif" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000, -1px -1px 2px #000;">${text}</text>`;
+            const textOffset = (p1, p2, offset, swap) => { const midX = (p1.x + p2.x)/2; const midY = (p1.y + p2.y)/2; const vx = p2.x - p1.x; const vy = p2.y - p1.y; let nx = -vy; let ny = vx; if (swap) { nx = vy; ny = -vx; } const len = Math.hypot(nx, ny) || 1; return getRotatedTextPos(midX + (nx/len)*offset, midY + (ny/len)*offset); }
 
             if(labels.h1) svg += drawLabel(textOffset(pLeft, pTop, 22, true), labels.h1, labels.h1==='x');
             if(labels.a1) svg += drawLabel(textOffset(pLeft, pBot, 22, false), labels.a1, labels.a1==='x');
@@ -1831,246 +1178,78 @@
             if(labels.a2) svg += drawLabel(textOffset(pBot, pRight, 22, false), labels.a2, labels.a2==='x');
             if(labels.o || labels.o === 'x') svg += drawLabel(textOffset(pBot, pTop, 22, true), labels.o, labels.o==='x');
 
-            if (targetAngle === 'left' || targetAngle === 'both') {
-                const pos = getRotatedTextPos(pLeft.x + 38, pLeft.y - 12);
-                svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">α</text>`;
-            }
-            if (targetAngle === 'right' || targetAngle === 'both') {
-                const pos = getRotatedTextPos(pRight.x - 38, pRight.y - 12);
-                svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">β</text>`;
-            }
+            if (targetAngle === 'left' || targetAngle === 'both') { const pos = getRotatedTextPos(pLeft.x + 38, pLeft.y - 12); svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">α</text>`; }
+            if (targetAngle === 'right' || targetAngle === 'both') { const pos = getRotatedTextPos(pRight.x - 38, pRight.y - 12); svg += `<text x="${pos.x}" y="${pos.y+6}" fill="#ffeb3b" font-size="18" font-weight="bold" text-anchor="middle" style="text-shadow: 1px 1px 2px #000;">β</text>`; }
 
-            svg += `</svg>`;
-            return { html: svg };
+            svg += `</svg>`; return { html: svg };
         }
 
         function renderLevel3Workspace(player, q) {
             document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${q.prompt}</span>`;
-            
-            const svgData = getCompositeSVG(q, { colorClass: `${player.prefix}-color` });
-            document.getElementById(`${player.prefix}-svg-container`).innerHTML = svgData.html;
-
-            const inter = document.getElementById(`${player.prefix}-interaction`);
-            inter.className = "grid grid-cols-2 gap-1 md:gap-2 flex-1 w-full max-h-[100px]"; inter.innerHTML = '';
-
+            document.getElementById(`${player.prefix}-svg-container`).innerHTML = getCompositeSVG(q, { colorClass: `${player.prefix}-color` }).html;
+            const inter = document.getElementById(`${player.prefix}-interaction`); inter.className = "grid grid-cols-2 gap-1 md:gap-2 flex-1 w-full max-h-[100px]"; inter.innerHTML = '';
             q.options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
-                
-                if(opt.includes('/')) {
-                    const [n, d] = opt.split('/');
-                    if(!isNaN(n) && !isNaN(d)) {
-                        btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
-                    } else { btn.innerHTML = opt; }
-                } else { btn.innerHTML = opt; }
-                
-                btn.onpointerdown = (e) => {
-                    e.preventDefault();
-                    if (isPaused || btn.dataset.clicked) return; 
-                    btn.dataset.clicked = "true";
-                    player.totalAttempts++;
-                    if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
-                };
-                btn.onclick = (e) => e.preventDefault(); 
-                inter.appendChild(btn);
+                const btn = document.createElement('button'); btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
+                if(opt.includes('/')) { const [n, d] = opt.split('/'); btn.innerHTML = (!isNaN(n) && !isNaN(d)) ? `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>` : opt; } else { btn.innerHTML = opt; }
+                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onclick = (e) => e.preventDefault(); inter.appendChild(btn);
             });
         }
 
         function renderLevel2Workspace(player, q) {
-            const promptText = q.type === 4 ? `${q.func}(θ) = ?` : q.promptType5;
-            document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${promptText}</span>`;
-            
-            const svgData = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: q.type===4, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation });
-            document.getElementById(`${player.prefix}-svg-container`).innerHTML = svgData.html;
-
-            const inter = document.getElementById(`${player.prefix}-interaction`);
-            inter.className = "grid grid-cols-2 gap-1 md:gap-2 flex-1 w-full max-h-[100px]"; inter.innerHTML = '';
-
+            document.getElementById(`${player.prefix}-prompt`).innerHTML = `<span class="text-xl md:text-2xl font-space">${q.type === 4 ? `${q.func}(θ) = ?` : q.promptType5}</span>`;
+            document.getElementById(`${player.prefix}-svg-container`).innerHTML = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: q.type===4, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
+            const inter = document.getElementById(`${player.prefix}-interaction`); inter.className = "grid grid-cols-2 gap-1 md:gap-2 flex-1 w-full max-h-[100px]"; inter.innerHTML = '';
             q.options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
-                
-                if(opt.includes('/')) {
-                    const [n, d] = opt.split('/');
-                    if(!isNaN(n) && !isNaN(d)) {
-                        btn.innerHTML = `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>`;
-                    } else { btn.innerHTML = opt; }
-                } else { btn.innerHTML = opt; }
-                
-                btn.onpointerdown = (e) => {
-                    e.preventDefault();
-                    if (isPaused || btn.dataset.clicked) return;
-                    btn.dataset.clicked = "true";
-                    player.totalAttempts++;
-                    if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
-                };
-                btn.onclick = (e) => e.preventDefault(); 
-                inter.appendChild(btn);
+                const btn = document.createElement('button'); btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
+                if(opt.includes('/')) { const [n, d] = opt.split('/'); btn.innerHTML = (!isNaN(n) && !isNaN(d)) ? `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>` : opt; } else { btn.innerHTML = opt; }
+                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onclick = (e) => e.preventDefault(); inter.appendChild(btn);
             });
         }
 
         function renderLevel1Workspace(player) {
-            cleanupDrags(player.id); 
-            const q = player.currentQ;
-            const promptEl = document.getElementById(`${player.prefix}-prompt`);
-            const svgEl = document.getElementById(`${player.prefix}-svg-container`);
-            const interEl = document.getElementById(`${player.prefix}-interaction`);
-            
-            interEl.className = "h-14 md:h-16 flex items-center justify-center gap-2 md:gap-3";
-            let svgHtml = '';
-            
+            cleanupDrags(player.id); const q = player.currentQ;
+            const promptEl = document.getElementById(`${player.prefix}-prompt`); const svgEl = document.getElementById(`${player.prefix}-svg-container`); const interEl = document.getElementById(`${player.prefix}-interaction`);
+            interEl.className = "h-14 md:h-16 flex items-center justify-center gap-2 md:gap-3"; let svgHtml = '';
             if(q.type === 1) { 
                 const dzNum = `<div class="drop-zone w-12 h-10 md:w-12 md:h-10 ${player.dndState.num ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="num" data-pid="${player.id}">${player.dndState.num || '?'}</div>`;
                 const dzDen = `<div class="drop-zone w-12 h-10 md:w-12 md:h-10 ${player.dndState.den ? 'filled' : ''} font-space text-base md:text-lg bg-gray-800" data-target="den" data-pid="${player.id}">${player.dndState.den || '?'}</div>`;
                 promptEl.innerHTML = `<div class="flex items-center"><span class="text-xl md:text-2xl font-space mr-2">${q.func}(θ) = </span><div class="flex flex-col items-center gap-1"><div class="relative">${dzNum}</div><div class="w-full h-1 bg-white rounded"></div><div class="relative">${dzDen}</div></div></div>`;
-
-                svgHtml = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
-                svgEl.innerHTML = svgHtml;
-
+                svgEl.innerHTML = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
                 interEl.innerHTML = '';
-                [q.math.o, q.math.a, q.math.h].sort((a,b)=>String(a).localeCompare(String(b))).forEach(val => {
-                    const isHidden = (player.dndState.num == val || player.dndState.den == val) ? 'opacity-0 pointer-events-none' : '';
-                    interEl.innerHTML += `<div class="draggable w-12 h-10 md:w-12 md:h-10 text-base md:text-xl font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
-                });
-
+                [q.math.o, q.math.a, q.math.h].sort((a,b)=>String(a).localeCompare(String(b))).forEach(val => { interEl.innerHTML += `<div class="draggable w-12 h-10 md:w-12 md:h-10 text-base md:text-xl font-space bg-gray-700 ${(player.dndState.num == val || player.dndState.den == val) ? 'opacity-0 pointer-events-none' : ''}" data-val="${val}" data-pid="${player.id}">${val}</div>`; });
             } else if (q.type === 2) { 
                 const dzFunc = `<div class="drop-zone w-14 h-10 md:w-16 md:h-10 mx-1 font-space text-base md:text-lg bg-gray-800 ${player.dndState.func ? 'filled' : ''}" data-target="func" data-pid="${player.id}">${player.dndState.func || '?'}</div>`;
                 promptEl.innerHTML = `<div class="flex items-center text-lg md:text-2xl font-space">${dzFunc} (θ) = <div class="inline-flex flex-col items-center leading-none mx-2 text-base md:text-xl"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${q.correctNum}</span><span class="px-2 pt-[3px]">${q.correctDen}</span></div></div>`;
-
-                svgHtml = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
-                svgEl.innerHTML = svgHtml;
-
+                svgEl.innerHTML = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: true, thetaPos: 'bottom', colorClass: `${player.prefix}-color`, rotation: q.rotation }).html;
                 interEl.innerHTML = '';
-                ['sin', 'cos', 'tan'].forEach(val => {
-                    const isHidden = (player.dndState.func == val) ? 'opacity-0 pointer-events-none' : '';
-                    interEl.innerHTML += `<div class="draggable w-16 h-10 md:w-16 md:h-10 text-base md:text-lg font-space bg-gray-700 ${isHidden}" data-val="${val}" data-pid="${player.id}">${val}</div>`;
-                });
-
+                ['sin', 'cos', 'tan'].forEach(val => { interEl.innerHTML += `<div class="draggable w-16 h-10 md:w-16 md:h-10 text-base md:text-lg font-space bg-gray-700 ${(player.dndState.func == val) ? 'opacity-0 pointer-events-none' : ''}" data-val="${val}" data-pid="${player.id}">${val}</div>`; });
             } else if (q.type === 3) { 
                 promptEl.innerHTML = `<span class="text-base md:text-xl font-space">${q.func}(θ) = <div class="inline-flex flex-col items-center leading-none align-middle mx-1 text-sm md:text-lg"><span class="border-b-[2px] border-white/80 px-1 pb-[2px]">${q.correctNum}</span><span class="px-1 pt-[3px]">${q.correctDen}</span></div> <br><span class="text-xs md:text-sm mt-1 block text-gray-300">${i18n[currentLang].dragHelp}</span></span>`;
-                
-                const svgData = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: false, colorClass: `${player.prefix}-color`, rotation: q.rotation });
-                svgEl.innerHTML = svgData.html;
-
+                const svgData = getSVG(q.math.o, q.math.a, q.math.h, { showSides: true, showTheta: false, colorClass: `${player.prefix}-color`, rotation: q.rotation }); svgEl.innerHTML = svgData.html;
                 setTimeout(() => { 
-                    const rect = svgEl.getBoundingClientRect();
-                    const scale = Math.min(rect.width, rect.height) / svgData.coords.scaleSize;
-                    const offsetX = (rect.width - svgData.coords.scaleSize * scale) / 2;
-                    const offsetY = (rect.height - svgData.coords.scaleSize * scale) / 2;
-
-                    const blX = offsetX + svgData.coords.bl.x * scale; const blY = offsetY + svgData.coords.bl.y * scale;
-                    const trX = offsetX + svgData.coords.tr.x * scale; const trY = offsetY + svgData.coords.tr.y * scale;
-
+                    const rect = svgEl.getBoundingClientRect(); const scale = Math.min(rect.width, rect.height) / svgData.coords.scaleSize;
+                    const blX = (rect.width - svgData.coords.scaleSize * scale) / 2 + svgData.coords.bl.x * scale; const blY = (rect.height - svgData.coords.scaleSize * scale) / 2 + svgData.coords.bl.y * scale;
+                    const trX = (rect.width - svgData.coords.scaleSize * scale) / 2 + svgData.coords.tr.x * scale; const trY = (rect.height - svgData.coords.scaleSize * scale) / 2 + svgData.coords.tr.y * scale;
                     svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-12 h-12 md:w-12 md:h-12 ${player.dndState.angle === 'angle_bottom' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${blX-24}px; top:${blY-24}px" data-target="angle_bottom" data-pid="${player.id}">${player.dndState.angle === 'angle_bottom' ? 'θ' : ''}</div>`;
                     svgEl.innerHTML += `<div class="drop-zone absolute rounded-full w-12 h-12 md:w-12 md:h-12 ${player.dndState.angle === 'angle_top' ? 'filled border-yellow-400 bg-yellow-400/20' : ''}" style="left:${trX-24}px; top:${trY-24}px" data-target="angle_top" data-pid="${player.id}">${player.dndState.angle === 'angle_top' ? 'θ' : ''}</div>`;
                 }, 10);
-
-                const isHidden = player.dndState.angle ? 'opacity-0 pointer-events-none' : '';
-                interEl.innerHTML = `<div class="draggable w-12 h-12 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)] ${isHidden}" data-val="theta" data-pid="${player.id}">θ</div>`;
+                interEl.innerHTML = `<div class="draggable w-12 h-12 md:w-12 md:h-12 rounded-full text-lg md:text-2xl font-space bg-yellow-600 border-yellow-300 shadow-[0_0_10px_rgba(250,204,21,0.5)] ${player.dndState.angle ? 'opacity-0 pointer-events-none' : ''}" data-val="theta" data-pid="${player.id}">θ</div>`;
             }
             setTimeout(() => attachDragListeners(player), 50);
         }
 
-        function attachDragListeners(player) {
-            const draggables = document.querySelectorAll(`.draggable[data-pid="${player.id}"]`);
-            draggables.forEach(el => { el.addEventListener('pointerdown', handleDragStart); });
-        }
-
-        function handleDragStart(e) {
-            e.preventDefault();
-            const el = e.currentTarget;
-            if(isPaused || el.style.opacity === '0.3' || activeDrags[e.pointerId]) return;
-
-            const ghost = el.cloneNode(true); 
-            ghost.classList.add('ghost-drag');
-            ghost.style.left = `${e.clientX - el.offsetWidth/2}px`; 
-            ghost.style.top = `${e.clientY - el.offsetHeight/2}px`;
-            document.body.appendChild(ghost);
-            
-            el.style.opacity = '0.3';
-            
-            activeDrags[e.pointerId] = {
-                element: el,
-                val: el.getAttribute('data-val'),
-                pid: parseInt(el.getAttribute('data-pid')),
-                ghostEl: ghost
-            };
-            
-            el.setPointerCapture(e.pointerId);
-            el.addEventListener('pointermove', handleDragMove);
-            el.addEventListener('pointerup', handleDragEnd);
-            el.addEventListener('pointercancel', handleDragEnd);
-        }
-
-        function handleDragMove(e) {
-            e.preventDefault();
-            const drag = activeDrags[e.pointerId];
-            if(!drag || !drag.ghostEl) return;
-            drag.ghostEl.style.left = `${e.clientX - drag.ghostEl.offsetWidth/2}px`; 
-            drag.ghostEl.style.top = `${e.clientY - drag.ghostEl.offsetHeight/2}px`;
-        }
-
-        function handleDragEnd(e) {
-            const el = e.currentTarget;
-            el.removeEventListener('pointermove', handleDragMove);
-            el.removeEventListener('pointerup', handleDragEnd);
-            el.removeEventListener('pointercancel', handleDragEnd);
-            
-            try { 
-                if (el.hasPointerCapture(e.pointerId)) {
-                    el.releasePointerCapture(e.pointerId); 
-                }
-            } catch(err) {} 
-            
-            const drag = activeDrags[e.pointerId];
-            if(!drag) return; 
-
-            drag.ghostEl.style.visibility = 'hidden'; 
-            const elements = document.elementsFromPoint(e.clientX, e.clientY) || [];
-            let dropZone = Array.from(elements).find(target => target.classList && target.classList.contains('drop-zone') && parseInt(target.getAttribute('data-pid')) === drag.pid);
-            
-            const player = drag.pid === 1 ? p1 : p2; 
-            const val = drag.val;
-
-            if (dropZone) {
-                processDrop(player, val, dropZone.getAttribute('data-target'));
-            } else {
-                drag.element.style.opacity = '1';
-            }
-
-            if (drag.ghostEl && drag.ghostEl.parentNode) {
-                drag.ghostEl.remove(); 
-            }
-            delete activeDrags[e.pointerId];
-        }
-
+        function attachDragListeners(player) { document.querySelectorAll(`.draggable[data-pid="${player.id}"]`).forEach(el => { el.addEventListener('pointerdown', handleDragStart); }); }
+        function handleDragStart(e) { e.preventDefault(); const el = e.currentTarget; if(isPaused || el.style.opacity === '0.3' || activeDrags[e.pointerId]) return; const ghost = el.cloneNode(true); ghost.classList.add('ghost-drag'); ghost.style.left = `${e.clientX - el.offsetWidth/2}px`; ghost.style.top = `${e.clientY - el.offsetHeight/2}px`; document.body.appendChild(ghost); el.style.opacity = '0.3'; activeDrags[e.pointerId] = { element: el, val: el.getAttribute('data-val'), pid: parseInt(el.getAttribute('data-pid')), ghostEl: ghost }; el.setPointerCapture(e.pointerId); el.addEventListener('pointermove', handleDragMove); el.addEventListener('pointerup', handleDragEnd); el.addEventListener('pointercancel', handleDragEnd); }
+        function handleDragMove(e) { e.preventDefault(); const drag = activeDrags[e.pointerId]; if(!drag || !drag.ghostEl) return; drag.ghostEl.style.left = `${e.clientX - drag.ghostEl.offsetWidth/2}px`; drag.ghostEl.style.top = `${e.clientY - drag.ghostEl.offsetHeight/2}px`; }
+        function handleDragEnd(e) { const el = e.currentTarget; el.removeEventListener('pointermove', handleDragMove); el.removeEventListener('pointerup', handleDragEnd); el.removeEventListener('pointercancel', handleDragEnd); try { if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId); } catch(err) {} const drag = activeDrags[e.pointerId]; if(!drag) return; drag.ghostEl.style.visibility = 'hidden'; const elements = document.elementsFromPoint(e.clientX, e.clientY) || []; let dropZone = Array.from(elements).find(target => target.classList && target.classList.contains('drop-zone') && parseInt(target.getAttribute('data-pid')) === drag.pid); const player = drag.pid === 1 ? p1 : p2; const val = drag.val; if (dropZone) processDrop(player, val, dropZone.getAttribute('data-target')); else drag.element.style.opacity = '1'; if (drag.ghostEl && drag.ghostEl.parentNode) drag.ghostEl.remove(); delete activeDrags[e.pointerId]; }
+        
         function processDrop(player, val, target) {
             const q = player.currentQ; let checkTriggered = false;
-
-            if (q.type === 1) { 
-                if(target === 'num') player.dndState.num = val;
-                if(target === 'den') player.dndState.den = val;
-                
-                if (player.dndState.num && player.dndState.den) {
-                    player.totalAttempts++; 
-                    checkTriggered = true;
-                    if (player.dndState.num == q.correctNum && player.dndState.den == q.correctDen) triggerCorrectAnswer(player);
-                    else triggerWrongAnswer(player, false);
-                }
-            } 
-            else if (q.type === 2) { 
-                player.dndState.func = val;
-                player.totalAttempts++;
-                checkTriggered = true;
-                if (val === q.func) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
-            }
-            else if (q.type === 3) { 
-                player.dndState.angle = target;
-                player.totalAttempts++;
-                checkTriggered = true;
-                if (target === 'angle_bottom') triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
-            }
-
+            if (q.type === 1) { if(target === 'num') player.dndState.num = val; if(target === 'den') player.dndState.den = val; if (player.dndState.num && player.dndState.den) { player.totalAttempts++; checkTriggered = true; if (player.dndState.num == q.correctNum && player.dndState.den == q.correctDen) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); } } 
+            else if (q.type === 2) { player.dndState.func = val; player.totalAttempts++; checkTriggered = true; if (val === q.func) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); }
+            else if (q.type === 3) { player.dndState.angle = target; player.totalAttempts++; checkTriggered = true; if (target === 'angle_bottom') triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); }
             if(!checkTriggered) renderLevel1Workspace(player); 
         }
 
@@ -2078,18 +1257,10 @@
         let canvasW, canvasH, p1Ships = [], p2Ships = [], lasers = [], particles = [], stars = [];
 
         function resizeCanvas() {
-            canvasW = window.innerWidth; canvasH = window.innerHeight;
-            canvas.width = canvasW; canvas.height = canvasH;
-            
-            stars = [];
-            for(let i=0; i<150; i++) stars.push({ x: Math.random()*canvasW, y: Math.random()*canvasH, speed: Math.random()*0.5+0.1, size: Math.random()*1.5 });
-
-            const centerX = canvasW / 2; const topY = 120; const botY = canvasH - 50; const stepY = (botY - topY) / 7;
-            p1Ships = []; p2Ships = [];
-            for(let i=0; i<=7; i++) {
-                p1Ships.push({ x: centerX - (canvasW<768?25:45), y: botY - (i * stepY) });
-                p2Ships.push({ x: centerX + (canvasW<768?25:45), y: botY - (i * stepY) });
-            }
+            canvasW = window.innerWidth; canvasH = window.innerHeight; canvas.width = canvasW; canvas.height = canvasH;
+            stars = []; for(let i=0; i<150; i++) stars.push({ x: Math.random()*canvasW, y: Math.random()*canvasH, speed: Math.random()*0.5+0.1, size: Math.random()*1.5 });
+            const centerX = canvasW / 2; const topY = 120; const botY = canvasH - 50; const stepY = (botY - topY) / 7; p1Ships = []; p2Ships = [];
+            for(let i=0; i<=7; i++) { p1Ships.push({ x: centerX - (canvasW<768?25:45), y: botY - (i * stepY) }); p2Ships.push({ x: centerX + (canvasW<768?25:45), y: botY - (i * stepY) }); }
         }
         window.addEventListener('resize', resizeCanvas);
 
@@ -2097,67 +1268,36 @@
         function createExplosion(x, y, color) { for(let i=0; i<15; i++) particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1, color }); }
 
         function renderCanvas() {
-            ctx.clearRect(0, 0, canvasW, canvasH);
-            
-            ctx.fillStyle = '#fff';
-            stars.forEach(s => {
-                ctx.globalAlpha = Math.random()*0.5 + 0.3;
-                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-                if (!isPaused) {
-                    s.y += s.speed; if(s.y > canvasH) s.y = 0;
-                }
-            });
+            ctx.clearRect(0, 0, canvasW, canvasH); ctx.fillStyle = '#fff';
+            stars.forEach(s => { ctx.globalAlpha = Math.random()*0.5 + 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill(); if (!isPaused) { s.y += s.speed; if(s.y > canvasH) s.y = 0; } });
             ctx.globalAlpha = 1.0;
-
             if(gameState !== 'PLAYING') { requestAnimationFrame(renderCanvas); return; }
 
             if (mode !== 'PRACTICE' && mode !== 'RANKED') {
-                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath();
-                ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
-                ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
-
-                const now = isPaused ? pauseStartTime : Date.now();
-                const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
-
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath(); ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y); ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
+                const now = isPaused ? pauseStartTime : Date.now(); const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
                 ctx.font = '28px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                
-                const s1 = p1Ships[p1ShipPos];
-                ctx.shadowColor = '#0ff'; ctx.shadowBlur = 20; ctx.fillText('🚀', s1.x, s1.y + f1);
-                
-                const s2 = p2Ships[p2ShipPos];
-                ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 20; ctx.save(); ctx.translate(s2.x, s2.y + f2); ctx.scale(-1, 1);
-                ctx.fillText('🚀', 0, 0); ctx.restore(); ctx.shadowBlur = 0;
+                const s1 = p1Ships[p1ShipPos]; ctx.shadowColor = '#0ff'; ctx.shadowBlur = 20; ctx.fillText('🚀', s1.x, s1.y + f1);
+                const s2 = p2Ships[p2ShipPos]; ctx.shadowColor = '#c084fc'; ctx.shadowBlur = 20; ctx.save(); ctx.translate(s2.x, s2.y + f2); ctx.scale(-1, 1); ctx.fillText('🚀', 0, 0); ctx.restore(); ctx.shadowBlur = 0;
             }
 
             for(let i=lasers.length-1; i>=0; i--) {
-                const l = lasers[i]; 
-                if (!isPaused) l.prog += 0.2;
-                const cx = l.x + (l.tx - l.x)*l.prog; const cy = l.y + (l.ty - l.y)*l.prog;
-                
+                const l = lasers[i]; if (!isPaused) l.prog += 0.2; const cx = l.x + (l.tx - l.x)*l.prog; const cy = l.y + (l.ty - l.y)*l.prog;
                 ctx.strokeStyle = l.color; ctx.lineWidth = 4; ctx.shadowColor = l.color; ctx.shadowBlur = 10;
                 ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(cx, cy); ctx.stroke(); ctx.shadowBlur = 0;
-
                 if(l.prog >= 1 && !isPaused) { createExplosion(l.tx, l.ty, l.color); lasers.splice(i, 1); }
             }
 
             for(let i=particles.length-1; i>=0; i--) {
-                const p = particles[i]; 
-                if (!isPaused) {
-                    p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-                }
-                if(p.life <= 0) particles.splice(i, 1);
-                else {
-                    ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0;
-                }
+                const p = particles[i]; if (!isPaused) { p.x += p.vx; p.y += p.vy; p.life -= 0.05; }
+                if(p.life <= 0) particles.splice(i, 1); else { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha = 1.0; }
             }
             requestAnimationFrame(renderCanvas);
         }
 
         window.onload = function() {
             document.getElementById('audio-init-overlay').classList.remove('hidden');
-            window.fetchLeaderboards(); 
-            resizeCanvas(); renderCanvas();
+            fetchLeaderboards(); resizeCanvas(); renderCanvas();
         };
     </script>
 </body>
