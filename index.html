@@ -20,6 +20,12 @@
         .neon-p1 { box-shadow: 0 0 10px rgba(0, 255, 255, 0.3); border: 1px solid rgba(0, 255, 255, 0.4); }
         .neon-p2 { box-shadow: 0 0 10px rgba(192, 132, 252, 0.3); border: 1px solid rgba(192, 132, 252, 0.4); }
 
+        /* 確保選單與排行榜區塊可以正常滑動 (覆蓋 body 的 touch-action: none) */
+        #mainMenu, #endScreen, .overflow-y-auto {
+            touch-action: auto !important; 
+            -webkit-overflow-scrolling: touch;
+        }
+
         .health-bar-container { position: relative; width: 100%; height: 16px; background: #222; border-radius: 8px; overflow: hidden; border: 2px solid #555; }
         .health-bar-p1 { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg, #0284c7, #06b6d4); transition: width 0.3s ease; }
         .health-bar-p2 { position: absolute; right: 0; top: 0; height: 100%; background: linear-gradient(270deg, #7e22ce, #c084fc); transition: width 0.3s ease; }
@@ -82,8 +88,23 @@
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 70% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         .pop-in-anim { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
+        /* 分數浮動動畫 */
+        .score-float {
+            position: fixed;
+            font-weight: 900;
+            font-size: 1.5rem;
+            animation: floatUpFade 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        @keyframes floatUpFade {
+            0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(0) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1); }
+        }
+
         /* =========================================
-           獨自稱霸 (單人) 模式專屬 CSS 排版 (增強適配性)
+           獨自稱霸/榜首之爭 (單人) 模式專屬 CSS 排版
         ========================================= */
         body.practice-active #p2-area,
         body.practice-active #battle-spacer,
@@ -132,7 +153,7 @@
             flex-shrink: 1;
         }
         body.practice-active #p1-svg-container svg {
-            transform: scale(1); /* 回歸正常比例，使用 100% 響應式 */
+            transform: scale(1); 
             max-width: 100%;
             max-height: 100%;
             overflow: visible; 
@@ -217,78 +238,139 @@
     </div>
 
     <!-- 首頁選單 -->
-    <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-center px-4 bg-black/80 backdrop-blur-md hidden pointer-events-auto overflow-y-auto py-8">
+    <div id="mainMenu" class="fixed inset-0 z-50 flex flex-col items-center justify-start bg-black/80 backdrop-blur-md hidden pointer-events-auto overflow-y-auto pt-6 pb-12 w-full">
         <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, rgba(0,255,255,0.1) 0%, #000 100%);"></div>
         
-        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-2 font-space text-center drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] relative z-10 animate-breathe">
+        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 mb-2 font-space text-center drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] relative z-10 animate-breathe mt-4">
             宇宙三角防衛戰
         </h1>
-        <h2 class="text-2xl md:text-4xl font-black text-cyan-200 mb-6 font-space text-center drop-shadow-[0_0_15px_rgba(0,255,255,0.8)] relative z-10 animate-breathe">
+        <h2 class="text-xl md:text-3xl font-black text-cyan-200 mb-6 font-space text-center drop-shadow-[0_0_15px_rgba(0,255,255,0.8)] relative z-10 animate-breathe">
             Trigowar
         </h2>
         
-        <div class="w-full max-w-md bg-gray-900/80 border border-cyan-800/50 rounded-3xl p-5 md:p-6 shadow-[0_0_30px_rgba(0,255,255,0.2)] backdrop-blur-xl relative z-10">
-            <!-- 語言切換 -->
-            <div class="flex justify-center gap-4 mb-4">
-                <button id="lang-zh" onclick="setLang('zh')" class="px-4 py-1 rounded-full bg-blue-600 text-white font-bold text-sm border-2 border-blue-400 transition">中文</button>
-                <button id="lang-en" onclick="setLang('en')" class="px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition">English</button>
-            </div>
-
-            <div class="mb-5">
-                <label class="block text-cyan-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">DIFFICULTY</label>
-                <div class="flex gap-2">
-                    <button id="btn-lvl1" onclick="setDiff(1)" class="flex-1 py-2 md:py-3 bg-cyan-600/90 text-white rounded-xl font-bold border-2 border-cyan-400 font-space text-base md:text-sm transition shadow-[0_0_10px_rgba(0,255,255,0.5)]">Level 1</button>
-                    <button id="btn-lvl2" onclick="setDiff(2)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 2</button>
-                    <button id="btn-lvl3" onclick="setDiff(3)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 3</button>
+        <!-- 左右並疊的靈活排版容器 -->
+        <div class="flex flex-col lg:flex-row items-stretch justify-center gap-4 md:gap-6 w-full max-w-5xl relative z-10 px-4 mx-auto">
+            
+            <!-- 左側/中央: 遊戲設定面板 -->
+            <div class="flex-1 w-full max-w-md mx-auto bg-gray-900/80 border border-cyan-800/50 rounded-3xl p-4 md:p-6 shadow-[0_0_30px_rgba(0,255,255,0.2)] backdrop-blur-xl">
+                <!-- 語言切換 -->
+                <div class="flex justify-center gap-4 mb-4">
+                    <button id="lang-zh" onclick="setLang('zh')" class="px-4 py-1 rounded-full bg-blue-600 text-white font-bold text-sm border-2 border-blue-400 transition">中文</button>
+                    <button id="lang-en" onclick="setLang('en')" class="px-4 py-1 rounded-full bg-gray-700 text-gray-300 font-bold text-sm border-2 border-transparent transition">English</button>
                 </div>
-            </div>
 
-            <div class="mb-5">
-                <label class="block text-purple-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">GAME MODE</label>
-                <div class="flex gap-2 mb-3">
-                    <button id="btn-mode-count" onclick="setMode('COUNT')" class="flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base">爭分奪秒</button>
-                    <button id="btn-mode-time" onclick="setMode('TIME')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">霸王餐</button>
-                    <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">獨自稱霸</button>
-                </div>
-                
-                <!-- 新增：電鰻效果設定 -->
-                <div id="setting-eel" class="flex flex-col items-center justify-center bg-black/40 p-2 md:p-3 rounded-lg border border-yellow-600/50 mb-3 shadow-[0_0_10px_rgba(250,204,21,0.1)]">
-                    <div class="flex items-center gap-3">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" id="chk-eel" class="sr-only peer">
-                          <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
-                        </label>
-                        <span id="lbl-eel" class="text-yellow-400 font-bold text-sm md:text-base tracking-wide flex items-center gap-1"><span class="text-lg">⚡</span> 電鰻效果 (暈眩)</span>
-                    </div>
-                    <div id="eel-time-config" class="flex items-center gap-2 mt-2 transition-all opacity-50 pointer-events-none">
-                        <span id="lbl-eel-time" class="text-gray-300 text-xs md:text-sm">暈眩秒數:</span>
-                        <input type="number" id="input-eel-time" value="3" min="1" max="10" class="w-16 bg-gray-800 text-yellow-400 font-space font-bold rounded px-2 py-1 border border-yellow-700 text-center text-sm md:text-base outline-none">
+                <!-- 難度選擇 (綁定 ID 以便榜首模式自動隱藏) -->
+                <div id="setting-difficulty" class="mb-4">
+                    <label class="block text-cyan-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">DIFFICULTY</label>
+                    <div class="flex gap-2">
+                        <button id="btn-lvl1" onclick="setDiff(1)" class="flex-1 py-2 md:py-3 bg-cyan-600/90 text-white rounded-xl font-bold border-2 border-cyan-400 font-space text-base md:text-sm transition shadow-[0_0_10px_rgba(0,255,255,0.5)]">Level 1</button>
+                        <button id="btn-lvl2" onclick="setDiff(2)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 2</button>
+                        <button id="btn-lvl3" onclick="setDiff(3)" class="flex-1 py-2 md:py-3 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent font-space text-base md:text-sm transition">Level 3</button>
                     </div>
                 </div>
 
-                <div id="setting-count" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700">
-                    <span id="lbl-set-count" class="text-white font-bold text-sm md:text-base">設定題數:</span>
-                    <input type="number" id="input-count" value="10" min="1" max="50" class="w-16 md:w-20 bg-gray-800 text-cyan-400 font-space font-bold rounded px-2 py-1 border border-cyan-700 text-center text-base md:text-lg outline-none">
+                <div class="mb-4">
+                    <label class="block text-purple-300 font-bold mb-2 text-center tracking-widest text-sm md:text-base">GAME MODE</label>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button id="btn-mode-count" onclick="setMode('COUNT')" class="py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base">爭分奪秒</button>
+                        <button id="btn-mode-time" onclick="setMode('TIME')" class="py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">霸王餐</button>
+                        <button id="btn-mode-prac" onclick="setMode('PRACTICE')" class="py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">獨自稱霸</button>
+                        <button id="btn-mode-rank" onclick="setMode('RANKED')" class="py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base">榜首之爭</button>
+                    </div>
+                    
+                    <!-- 一般：電鰻效果設定 -->
+                    <div id="setting-eel" class="flex flex-col items-center justify-center bg-black/40 p-2 md:p-3 rounded-lg border border-yellow-600/50 mb-3 shadow-[0_0_10px_rgba(250,204,21,0.1)]">
+                        <div class="flex items-center gap-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="chk-eel" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                            </label>
+                            <span id="lbl-eel" class="text-yellow-400 font-bold text-sm md:text-base tracking-wide flex items-center gap-1"><span class="text-lg">⚡</span> 電鰻效果 (暈眩)</span>
+                        </div>
+                        <div id="eel-time-config" class="flex items-center gap-2 mt-2 transition-all opacity-50 pointer-events-none">
+                            <span id="lbl-eel-time" class="text-gray-300 text-xs md:text-sm">暈眩秒數:</span>
+                            <input type="number" id="input-eel-time" value="3" min="1" max="10" class="w-16 bg-gray-800 text-yellow-400 font-space font-bold rounded px-2 py-1 border border-yellow-700 text-center text-sm md:text-base outline-none">
+                        </div>
+                    </div>
+
+                    <!-- 榜首之爭專屬設定 (排行資訊) -->
+                    <div id="setting-ranked" class="flex flex-col gap-2 bg-black/60 p-3 rounded-lg border border-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.2)] mb-3 hidden">
+                        <div class="text-yellow-400 font-bold text-center border-b border-yellow-600 pb-1 text-sm md:text-base" id="lbl-rank-title">👑 榜首之爭設定</div>
+                        
+                        <div class="flex justify-center gap-4 text-yellow-300 text-sm mt-1 mb-1 border-b border-yellow-600/50 pb-2">
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="rank-rule" value="time" checked onchange="updateRankNotice()"> <span id="lbl-rank-time">2分鐘模式</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="rank-rule" value="count" onchange="updateRankNotice()"> <span id="lbl-rank-count">20題模式</span>
+                            </label>
+                        </div>
+
+                        <div class="text-[10px] md:text-xs text-center text-pink-400 font-bold mb-1" id="lbl-rank-notice">⏱ 2分鐘極限挑戰 | ⚡ 答錯自動暈眩3秒</div>
+                        
+                        <div class="flex gap-2 mt-1">
+                            <select id="rank-grade" onchange="checkAutoFill()" class="flex-1 bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none">
+                                <option value="" disabled selected id="opt-grade">年級</option>
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                            </select>
+                            <select id="rank-class" onchange="checkAutoFill()" class="flex-1 bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none">
+                                <option value="" disabled selected id="opt-class">班別</option>
+                                <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+                                <option value="D">D</option><option value="E">E</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 防呆：純數字輸入 -->
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" id="rank-sid" oninput="this.value=this.value.replace(/[^0-9]/g,''); checkAutoFill()" placeholder="學號" class="w-full bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none placeholder-gray-400">
+                        
+                        <input type="text" id="rank-nick" placeholder="暱稱 (選填, 勿與他人重複)" class="w-full bg-gray-800 text-white rounded p-2 border border-gray-600 outline-none placeholder-gray-400">
+                        
+                        <div class="flex justify-center gap-4 text-gray-300 text-sm mt-1">
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="rank-display" value="sid" checked> <span id="lbl-show-sid">顯示學號</span>
+                            </label>
+                            <label class="flex items-center gap-1 cursor-pointer">
+                                <input type="radio" name="rank-display" value="nick"> <span id="lbl-show-nick">顯示暱稱</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="setting-count" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700 mb-2">
+                        <span id="lbl-set-count" class="text-white font-bold text-sm md:text-base">設定題數:</span>
+                        <input type="number" id="input-count" value="10" min="1" max="50" class="w-16 md:w-20 bg-gray-800 text-cyan-400 font-space font-bold rounded px-2 py-1 border border-cyan-700 text-center text-base md:text-lg outline-none">
+                    </div>
+                    <div id="setting-time" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700 mb-2 hidden">
+                        <span id="lbl-set-time" class="text-white font-bold text-sm md:text-base">設定秒數:</span>
+                        <input type="number" id="input-time" value="60" min="10" max="300" class="w-16 md:w-20 bg-gray-800 text-purple-400 font-space font-bold rounded px-2 py-1 border border-purple-700 text-center text-base md:text-lg outline-none">
+                    </div>
+                    <div id="setting-personal" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700">
+                        <span id="lbl-set-personal" class="text-white font-bold text-sm md:text-base">專屬作答秒數:</span>
+                        <input type="number" id="input-personal" value="30" min="5" max="100" class="w-16 md:w-20 bg-gray-800 text-yellow-400 font-space font-bold rounded px-2 py-1 border border-yellow-700 text-center text-base md:text-lg outline-none">
+                    </div>
+                    
+                    <div id="menu-error" class="hidden text-red-500 text-sm md:text-base font-bold text-center mt-2 animate-pulse"></div>
                 </div>
-                <div id="setting-time" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700 hidden">
-                    <span id="lbl-set-time" class="text-white font-bold text-sm md:text-base">設定秒數:</span>
-                    <input type="number" id="input-time" value="60" min="10" max="300" class="w-16 md:w-20 bg-gray-800 text-purple-400 font-space font-bold rounded px-2 py-1 border border-purple-700 text-center text-base md:text-lg outline-none">
-                </div>
-                <div id="setting-personal" class="flex items-center justify-center gap-3 bg-black/40 p-2 md:p-3 rounded-lg border border-gray-700 mt-2">
-                    <span id="lbl-set-personal" class="text-white font-bold text-sm md:text-base">專屬作答秒數:</span>
-                    <input type="number" id="input-personal" value="30" min="5" max="100" class="w-16 md:w-20 bg-gray-800 text-yellow-400 font-space font-bold rounded px-2 py-1 border border-yellow-700 text-center text-base md:text-lg outline-none">
-                </div>
+
+                <button id="btn-start" onclick="startPreGameCountdown()" class="w-full py-3 md:py-4 mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xl md:text-2xl font-black tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.6)] hover:scale-105 hover:shadow-[0_0_30px_rgba(16,185,129,0.8)] transition-all">
+                    開始作戰 / START
+                </button>
             </div>
 
-            <button id="btn-start" onclick="startPreGameCountdown()" class="w-full py-3 md:py-4 mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xl md:text-2xl font-black tracking-widest shadow-[0_0_20px_rgba(16,185,129,0.6)] hover:scale-105 hover:shadow-[0_0_30px_rgba(16,185,129,0.8)] transition-all">
-                開始作戰 / START
-            </button>
+            <!-- 右側: 總積分排行榜 -->
+            <div class="w-full lg:w-72 shrink-0 bg-gray-900/80 border border-yellow-500/50 rounded-3xl p-4 shadow-[0_0_20px_rgba(250,204,21,0.2)] backdrop-blur-xl h-fit mx-auto">
+                <h3 class="text-yellow-400 font-bold text-center mb-3 font-space text-sm tracking-widest drop-shadow-[0_0_8px_#facc15]" id="lbl-global-lb">🏆 總積分排行榜 TOP 5</h3>
+                <div id="global-lb-list" class="flex flex-col gap-2 text-xs md:text-sm">
+                    <div class="text-center text-gray-500 py-3 font-bold">資料同步中...</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- 結算畫面 -->
-    <div id="endScreen" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center px-4 hidden backdrop-blur-lg pointer-events-auto">
+    <div id="endScreen" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center px-4 hidden backdrop-blur-lg pointer-events-auto overflow-y-auto py-8">
         <h1 id="endTitle" class="text-4xl md:text-5xl font-black text-white mb-6 font-space text-center drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-breathe">GAME OVER</h1>
+        
         <div class="pop-in-anim w-full max-w-lg bg-gray-800 border border-gray-600 rounded-3xl p-4 md:p-6 shadow-2xl flex flex-col gap-4 relative overflow-hidden">
             <div class="flex justify-between items-center p-3 md:p-4 bg-gray-900 rounded-2xl border border-cyan-800 relative z-10">
                 <div id="res-p1" class="text-cyan-400 font-bold text-lg md:text-xl">Player 1 (藍)</div>
@@ -305,20 +387,102 @@
                     <div class="text-gray-400 text-xs md:text-sm"><span id="lbl-cor2">答對: </span><span id="res-cor2">0</span><span id="lbl-q2"> 題</span></div>
                 </div>
             </div>
+            
+            <!-- 榜首之爭排行榜 -->
+            <div id="leaderboard-box" class="hidden mt-2 bg-gray-900 border border-yellow-500 rounded-xl p-3 z-10 relative shadow-[0_0_15px_rgba(250,204,21,0.3)]">
+                <h3 class="text-yellow-400 font-bold text-center mb-3 font-space tracking-widest text-lg" id="lbl-leaderboard">🏆 排行榜 TOP 10</h3>
+                <div id="leaderboard-list" class="flex flex-col gap-2 text-sm md:text-base max-h-[30vh] md:max-h-[400px] overflow-y-auto pr-2">
+                    <div class="text-center text-gray-500 py-3 font-bold">排行榜載入中...</div>
+                </div>
+            </div>
         </div>
+
         <button id="btn-back-menu" onclick="showMenu()" class="mt-8 px-6 py-2 md:px-8 md:py-3 bg-white text-black rounded-full text-lg md:text-xl font-bold hover:scale-105 transition shadow-[0_0_15px_rgba(255,255,255,0.5)]">返回主畫面</button>
     </div>
 
-    <!-- 腳本 -->
-    <script>
+    <!-- Firebase 資料庫與遊戲主腳本 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. Firebase 實時資料庫初始化
+        // ==========================================
+        let db, auth, appId;
+        let currentUser = null;
+        let globalLeaderboardData = {};
+        let rankedLeaderboardData = {};
+        let isCloudEnabled = false;
+
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            if(firebaseConfig) {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'trigo-defender';
+                isCloudEnabled = true;
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        setupDatabaseListeners();
+                    }
+                });
+            }
+        } catch(e) {
+            console.error("Firebase init failed, fallback to LocalStorage", e);
+        }
+
+        // ==========================================
+        // 2. 實時同步監聽設定
+        // ==========================================
+        function setupDatabaseListeners() {
+            // 監聽：全球總積分排行榜
+            const globalCol = collection(db, 'artifacts', appId, 'public', 'data', 'global_leaderboard');
+            onSnapshot(globalCol, (snapshot) => {
+                globalLeaderboardData = {};
+                snapshot.forEach(doc => {
+                    globalLeaderboardData[doc.id] = doc.data();
+                });
+                renderGlobalLeaderboard();
+            }, (error) => console.error("Global DB error:", error));
+
+            // 監聽：榜首之爭排行榜
+            const rankedCol = collection(db, 'artifacts', appId, 'public', 'data', 'ranked_leaderboard');
+            onSnapshot(rankedCol, (snapshot) => {
+                rankedLeaderboardData = {};
+                snapshot.forEach(doc => {
+                    rankedLeaderboardData[doc.id] = doc.data();
+                });
+                if(gameState === 'END' && mode === 'RANKED') {
+                    renderRankedLeaderboard();
+                }
+            }, (error) => console.error("Ranked DB error:", error));
+        }
+
+        // ==========================================
+        // 3. 全局變數與設定
+        // ==========================================
         let currentLang = 'zh';
         const i18n = {
             zh: {
-                modeCount: "爭分奪秒", modeTime: "霸王餐", modePrac: "獨自稱霸",
+                modeCount: "爭分奪秒", modeTime: "霸王餐", modePrac: "獨自稱霸", modeRank: "榜首之爭",
                 setCount: "設定題數:", setTime: "設定秒數:", setPersonal: "專屬作答秒數:",
                 btnStart: "開始作戰 / START", btnEnd: "結束遊戲", btnMenu: "返回主畫面",
                 p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "獨自稱霸 (單人模式)",
+                rankModeInfo: "榜首之爭 (極限衝分)",
                 timeUp: "時間到！", countReached: "題數達成！", missionComplete: "任務完成！",
                 winP1: "恭喜！Player 1 勝出！", winP2: "恭喜！Player 2 勝出！", draw: "平手！",
                 pracCorrect: "正確！", pracWrong: "錯誤！", pracTimeout: "時間到！", btnNext: "下一題", btnRetry: "再試一次",
@@ -327,14 +491,22 @@
                 prog: (c, m) => `進度: ${c} / ${m} 題`,
                 timeLeft: (l) => `倒數計時: ${l} 秒`,
                 correctIs: "正確答案: ", hintTheta: "提示: θ 的對邊為 ",
-                eelTitle: "電鰻效果 (暈眩)", eelSecs: "暈眩秒數:", stun: "暈眩中"
+                eelTitle: "電鰻效果 (暈眩)", eelSecs: "暈眩秒數:", stun: "暈眩中",
+                rankGrade: "年級", rankClass: "班別", rankSID: "學號", rankNick: "暱稱 (選填, 勿與他人重複)",
+                rankShowSID: "顯示學號", rankShowNick: "顯示暱稱",
+                rankErr: "⚠️ 請完整選擇年級、班別並輸入學號！", leaderboard: "🏆 排行榜 TOP 10",
+                globalLb: "🏆 總積分排行榜 TOP 5", 
+                rankNoticeTime: "⏱ 2分鐘極限 | ⚡ 答錯自動暈眩3秒", rankNoticeCount: "🎯 20題競速 | ⚡ 答錯自動暈眩3秒", 
+                rankRuleTime: "2分鐘模式", rankRuleCount: "20題模式", rankProfanity: "⚠️ 暱稱包含不當用語，請更換！",
+                accLabel: "準確率"
             },
             en: {
-                modeCount: "Questions", modeTime: "Survival", modePrac: "Solo Mode",
+                modeCount: "Questions", modeTime: "Survival", modePrac: "Solo Mode", modeRank: "Ranked Mode",
                 setCount: "Target Qs:", setTime: "Total Time:", setPersonal: "Time per Q:",
                 btnStart: "START MISSION", btnEnd: "End Game", btnMenu: "Main Menu",
                 p1Blue: "Player 1", p2Purple: "Player 2",
                 pracModeInfo: "Solo Mode (Time & Score)",
+                rankModeInfo: "Ranked Clash (High Score)",
                 timeUp: "Time's up!", countReached: "Target reached!", missionComplete: "Mission Complete!",
                 winP1: "Congratulations! Player 1 Wins!", winP2: "Congratulations! Player 2 Wins!", draw: "Draw!",
                 pracCorrect: "Correct!", pracWrong: "Wrong!", pracTimeout: "Time out!", btnNext: "Next", btnRetry: "Retry",
@@ -343,11 +515,50 @@
                 prog: (c, m) => `Progress: ${c} / ${m}`,
                 timeLeft: (l) => `Time Left: ${l} s`,
                 correctIs: "Correct Answer: ", hintTheta: "Hint: Opp of θ is ",
-                eelTitle: "Eel Effect (Stun)", eelSecs: "Stun Secs:", stun: "STUNNED"
+                eelTitle: "Eel Effect (Stun)", eelSecs: "Stun Secs:", stun: "STUNNED",
+                rankGrade: "Grade", rankClass: "Class", rankSID: "Student ID", rankNick: "Nickname (Unique)",
+                rankShowSID: "Show ID", rankShowNick: "Show Nickname",
+                rankErr: "⚠️ Please select Grade, Class and enter valid Student ID!", leaderboard: "🏆 LEADERBOARD TOP 10",
+                globalLb: "🏆 SCORE LEADERBOARD TOP 5", 
+                rankNoticeTime: "⏱ 2 Min Limit | ⚡ 3s Stun on Wrong", rankNoticeCount: "🎯 20 Qs Race | ⚡ 3s Stun on Wrong", 
+                rankRuleTime: "2 Min Mode", rankRuleCount: "20 Qs Mode", rankProfanity: "⚠️ Inappropriate nickname!",
+                accLabel: "Accuracy"
             }
         };
 
-        function setLang(lang) {
+        let difficulty = 1; 
+        let mode = 'COUNT'; 
+        let maxCount = 10;
+        let maxTime = 60;
+        let maxPersonalTime = 30;
+        
+        let eelEnabled = false;
+        let eelDuration = 3;
+
+        let gameState = 'INIT'; 
+        let startTime = 0;
+        let mainTimer = null;
+        let globalQuestionsAnswered = 0;
+        let soloTotalTimeMs = 0;
+        let rankData = {}; 
+
+        let isAudioInit = false;
+        const audioFiles = [
+            'pipe_organ.mp3',
+            'space_metal.mp3',
+            'war.mp3',
+            'war2.mp3',
+            'trigosong.mp3'
+        ];
+        let menuAudio = null;
+        let battleAudio = null;
+        let menuTrackIdx = -1;
+        let battleTrackIdx = -1;
+
+        // ==========================================
+        // 4. 將需要被 HTML inline onclick 呼叫的函式綁定到 window 
+        // ==========================================
+        window.setLang = function(lang) {
             currentLang = lang;
             const t = i18n[lang];
             
@@ -357,6 +568,7 @@
             document.getElementById('btn-mode-count').innerText = t.modeCount;
             document.getElementById('btn-mode-time').innerText = t.modeTime;
             document.getElementById('btn-mode-prac').innerText = t.modePrac;
+            document.getElementById('btn-mode-rank').innerText = t.modeRank;
             document.getElementById('lbl-set-count').innerText = t.setCount;
             document.getElementById('lbl-set-time').innerText = t.setTime;
             document.getElementById('lbl-set-personal').innerText = t.setPersonal;
@@ -364,6 +576,22 @@
             
             document.getElementById('lbl-eel').innerHTML = `<span class="text-lg">⚡</span> ${t.eelTitle}`;
             document.getElementById('lbl-eel-time').innerText = t.eelSecs;
+
+            document.getElementById('opt-grade').innerText = t.rankGrade;
+            document.getElementById('opt-class').innerText = t.rankClass;
+            document.getElementById('rank-sid').placeholder = t.rankSID;
+            document.getElementById('rank-nick').placeholder = t.rankNick;
+            document.getElementById('lbl-show-sid').innerText = t.rankShowSID;
+            document.getElementById('lbl-show-nick').innerText = t.rankShowNick;
+            document.getElementById('lbl-leaderboard').innerText = t.leaderboard;
+            document.getElementById('lbl-global-lb').innerText = t.globalLb;
+            document.getElementById('lbl-rank-time').innerText = t.rankRuleTime;
+            document.getElementById('lbl-rank-count').innerText = t.rankRuleCount;
+            window.updateRankNotice();
+            
+            if(!document.getElementById('menu-error').classList.contains('hidden')) {
+                document.getElementById('menu-error').innerText = t.rankErr;
+            }
 
             document.getElementById('btn-end').innerText = t.btnEnd;
             document.getElementById('lbl-p1').innerText = t.p1Blue;
@@ -382,120 +610,13 @@
                 timeBoxText.childNodes[2].nodeValue = t.secs;
             }
             
-            if (gameState === 'PLAYING' && mode === 'PRACTICE') {
-                document.getElementById('gameInfoText').innerText = t.pracModeInfo;
+            if (gameState === 'PLAYING') {
+                if (mode === 'PRACTICE') document.getElementById('gameInfoText').innerText = t.pracModeInfo;
+                else if (mode === 'RANKED') document.getElementById('gameInfoText').innerText = t.rankModeInfo;
             }
-        }
+        };
 
-        let difficulty = 1; 
-        let mode = 'COUNT'; 
-        let maxCount = 10;
-        let maxTime = 60;
-        let maxPersonalTime = 30;
-        
-        let eelEnabled = false;
-        let eelDuration = 3;
-
-        let gameState = 'INIT'; 
-        let startTime = 0;
-        let mainTimer = null;
-        let globalQuestionsAnswered = 0;
-        let soloTotalTimeMs = 0;
-
-        let isAudioInit = false;
-        const audioFiles = [
-            'pipe_organ.mp3',
-            'space_metal.mp3',
-            'war.mp3',
-            'war2.mp3',
-            'trigosong.mp3'
-        ];
-        let menuAudio = null;
-        let battleAudio = null;
-        let menuTrackIdx = -1;
-        let battleTrackIdx = -1;
-
-        // 電鰻效果開關UI事件
-        document.getElementById('chk-eel').addEventListener('change', function() {
-            const conf = document.getElementById('eel-time-config');
-            if(this.checked) {
-                conf.classList.remove('opacity-50', 'pointer-events-none');
-            } else {
-                conf.classList.add('opacity-50', 'pointer-events-none');
-            }
-        });
-        
-        async function initAudioAndShowMenu() {
-            if(isAudioInit) return;
-            
-            menuTrackIdx = Math.floor(Math.random() * audioFiles.length);
-            menuAudio = new Audio(audioFiles[menuTrackIdx]);
-            menuAudio.loop = true;
-            menuAudio.volume = 0.5;
-            
-            try {
-                await menuAudio.play();
-            } catch(err) {
-                console.log("Audio play prevented:", err);
-            }
-            
-            isAudioInit = true;
-            document.getElementById('audio-init-overlay').classList.add('hidden');
-            showMenu();
-        }
-
-        function playBattleMusic() {
-            if(!isAudioInit) return;
-            if(battleAudio) {
-                battleAudio.pause();
-                battleAudio.currentTime = 0;
-            }
-            if(menuAudio) menuAudio.pause();
-            
-            // 確保戰鬥音樂不會和主選單音樂重複
-            do {
-                battleTrackIdx = Math.floor(Math.random() * audioFiles.length);
-            } while(battleTrackIdx === menuTrackIdx);
-            
-            battleAudio = new Audio(audioFiles[battleTrackIdx]);
-            battleAudio.loop = true;
-            battleAudio.volume = 0.5;
-            battleAudio.play().catch(e => console.log("Audio play error:", e));
-        }
-
-        function playMenuMusic() {
-            if(!isAudioInit) return;
-            if(battleAudio) battleAudio.pause();
-            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
-        }
-
-        const pythagoreanTriples = [
-            { o: 3, a: 4, h: 5 }, { o: 6, a: 8, h: 10 }, { o: 5, a: 12, h: 13 }, 
-            { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }
-        ];
-
-        const doubleTriples = [
-            { o: 12, a1: 5, h1: 13, a2: 9, h2: 15 },
-            { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 },
-            { o: 12, a1: 9, h1: 15, a2: 16, h2: 20 },
-            { o: 15, a1: 8, h1: 17, a2: 20, h2: 25 },
-            { o: 24, a1: 7, h1: 25, a2: 18, h2: 30 },
-            { o: 8,  a1: 6, h1: 10, a2: 15, h2: 17 }
-        ];
-
-        const p1 = createPlayer(1, 'cyan', 'p1');
-        const p2 = createPlayer(2, 'purple', 'p2');
-        let p1ShipPos = 0; let p2ShipPos = 0;
-
-        function createPlayer(id, color, prefix) {
-            return {
-                id, color, prefix, score: 0, corrects: 0, wrongAttempts: 0,
-                qStart: 0, currentQ: null, isGenerating: false, dndState: {},
-                isStunned: false, stunEndTime: 0
-            };
-        }
-
-        function setDiff(lvl) {
+        window.setDiff = function(lvl) {
             difficulty = lvl;
             const b1 = document.getElementById('btn-lvl1');
             const b2 = document.getElementById('btn-lvl2');
@@ -503,41 +624,143 @@
             b1.className = `flex-1 py-2 md:py-3 ${lvl===1 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
             b2.className = `flex-1 py-2 md:py-3 ${lvl===2 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
             b3.className = `flex-1 py-2 md:py-3 ${lvl===3 ? 'bg-cyan-600/90 text-white shadow-[0_0_10px_rgba(0,255,255,0.5)] border-cyan-400' : 'bg-gray-800/80 text-gray-400 border-transparent'} rounded-xl font-bold border-2 font-space text-base md:text-sm transition`;
-        }
+        };
 
-        function setMode(selectedMode) {
+        window.setMode = function(selectedMode) {
             mode = selectedMode;
             const bC = document.getElementById('btn-mode-count');
             const bT = document.getElementById('btn-mode-time');
             const bP = document.getElementById('btn-mode-prac');
-            const sC = document.getElementById('setting-count');
-            const sT = document.getElementById('setting-time');
+            const bR = document.getElementById('btn-mode-rank');
             
-            [bC, bT, bP].forEach(b => b.className = "flex-1 py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base");
-            sC.classList.add('hidden'); sT.classList.add('hidden');
+            [bC, bT, bP, bR].forEach(b => b.className = "py-2 bg-gray-800/80 text-gray-400 rounded-xl font-bold border-2 border-transparent transition text-sm md:text-base");
+            
+            document.getElementById('setting-difficulty').classList.remove('hidden');
+            document.getElementById('setting-count').classList.add('hidden');
+            document.getElementById('setting-time').classList.add('hidden');
+            document.getElementById('setting-ranked').classList.add('hidden');
+            document.getElementById('setting-eel').classList.remove('hidden'); 
+            document.getElementById('setting-personal').classList.remove('hidden'); 
+            document.getElementById('menu-error').classList.add('hidden');
 
-            const activeClass = "flex-1 py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base";
-            if(mode === 'COUNT') { bC.className = activeClass; sC.classList.remove('hidden'); } 
-            else if (mode === 'TIME') { bT.className = activeClass; sT.classList.remove('hidden'); } 
-            else { bP.className = activeClass; sC.classList.remove('hidden'); }
-        }
+            const activeClass = "py-2 bg-purple-600/90 text-white rounded-xl font-bold border-2 border-purple-400 transition shadow-[0_0_10px_rgba(192,132,252,0.5)] text-sm md:text-base";
+            
+            if(mode === 'COUNT') { bC.className = activeClass; document.getElementById('setting-count').classList.remove('hidden'); } 
+            else if (mode === 'TIME') { bT.className = activeClass; document.getElementById('setting-time').classList.remove('hidden'); } 
+            else if (mode === 'PRACTICE') { bP.className = activeClass; document.getElementById('setting-count').classList.remove('hidden'); }
+            else if (mode === 'RANKED') { 
+                bR.className = activeClass; 
+                document.getElementById('setting-difficulty').classList.add('hidden'); 
+                document.getElementById('setting-time').classList.add('hidden'); 
+                document.getElementById('setting-eel').classList.add('hidden');  
+                document.getElementById('setting-personal').classList.add('hidden'); 
+                document.getElementById('setting-ranked').classList.remove('hidden'); 
+            }
+        };
 
-        function showMenu() {
+        window.updateRankNotice = function() {
+            const rule = document.querySelector('input[name="rank-rule"]:checked').value;
+            const t = i18n[currentLang];
+            document.getElementById('lbl-rank-notice').innerText = rule === 'time' ? t.rankNoticeTime : t.rankNoticeCount;
+        };
+
+        window.showMenu = function() {
             document.getElementById('mainMenu').classList.remove('hidden');
             document.getElementById('endScreen').classList.add('hidden');
             document.getElementById('gameUI').classList.add('hidden');
             gameState = 'MENU';
             
+            renderGlobalLeaderboard(); 
             playMenuMusic();
+        };
+
+        window.initAudioAndShowMenu = async function() {
+            if(isAudioInit) return;
+            
+            menuTrackIdx = Math.floor(Math.random() * audioFiles.length);
+            menuAudio = new Audio(audioFiles[menuTrackIdx]);
+            menuAudio.loop = true;
+            menuAudio.volume = 0.5;
+            
+            try { await menuAudio.play(); } catch(err) { console.log("Audio play prevented:", err); }
+            
+            isAudioInit = true;
+            document.getElementById('audio-init-overlay').classList.add('hidden');
+            window.showMenu();
+        };
+
+        window.checkAutoFill = function() {
+            const grade = document.getElementById('rank-grade').value;
+            const cls = document.getElementById('rank-class').value;
+            const sid = document.getElementById('rank-sid').value;
+            if (grade && cls && sid) {
+                let players = isCloudEnabled ? globalLeaderboardData : JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                let pid = `${grade}-${cls}-${sid}`;
+                if (players[pid] && players[pid].nick) {
+                    document.getElementById('rank-nick').value = players[pid].nick;
+                }
+            }
+        };
+
+        function showError(msg) {
+            const err = document.getElementById('menu-error');
+            err.innerText = msg;
+            err.classList.remove('hidden');
         }
 
-        function startPreGameCountdown() {
-            maxCount = parseInt(document.getElementById('input-count').value) || 10;
-            maxTime = parseInt(document.getElementById('input-time').value) || 60;
-            maxPersonalTime = parseInt(document.getElementById('input-personal').value) || 30;
-            
-            eelEnabled = document.getElementById('chk-eel').checked;
-            eelDuration = parseInt(document.getElementById('input-eel-time').value) || 3;
+        window.startPreGameCountdown = function() {
+            if (mode === 'RANKED') {
+                const rankRule = document.querySelector('input[name="rank-rule"]:checked').value;
+                if (rankRule === 'time') {
+                    maxTime = 120;
+                    maxCount = Infinity;
+                } else {
+                    maxCount = 20;
+                    maxTime = Infinity;
+                }
+                
+                maxPersonalTime = 90; 
+                eelEnabled = true;
+                eelDuration = 3;
+                
+                const grade = document.getElementById('rank-grade').value;
+                const cls = document.getElementById('rank-class').value;
+                const sid = document.getElementById('rank-sid').value;
+                const nick = document.getElementById('rank-nick').value.trim();
+                const displayType = document.querySelector('input[name="rank-display"]:checked').value;
+                
+                const sidVal = parseInt(sid);
+                if (!grade || !cls || !sid || isNaN(sidVal)) {
+                    showError(i18n[currentLang].rankErr); return;
+                }
+                if (sidVal < 1 || sidVal > 60) {
+                    showError(currentLang === 'zh' ? "⚠️ 學號必須在 1 到 60 之間！" : "⚠️ SID must be between 1 and 60!"); return;
+                }
+
+                const badWords = ['幹', '操', '靠北', '沙小', '媽的', 'fuck', 'shit', 'bitch', 'cunt', '妓女', '笨蛋', '智障', '白痴', '垃圾'];
+                if (nick && badWords.some(w => nick.toLowerCase().includes(w))) {
+                    showError(i18n[currentLang].rankProfanity); return;
+                }
+
+                let players = isCloudEnabled ? globalLeaderboardData : JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                let currentPid = `${grade}-${cls}-${sid}`;
+                if (nick) {
+                    for (let pid in players) {
+                        if (pid !== currentPid && players[pid].nick === nick) {
+                            showError(currentLang === 'zh' ? "⚠️ 此暱稱已被他人使用，請換一個！" : "⚠️ Nickname already taken!"); return;
+                        }
+                    }
+                }
+
+                document.getElementById('menu-error').classList.add('hidden');
+                rankData = { grade, cls, sid, nick, displayType, rule: rankRule };
+            } else {
+                maxCount = parseInt(document.getElementById('input-count').value) || 10;
+                maxTime = parseInt(document.getElementById('input-time').value) || 60;
+                maxPersonalTime = parseInt(document.getElementById('input-personal').value) || 30;
+                eelEnabled = document.getElementById('chk-eel').checked;
+                eelDuration = parseInt(document.getElementById('input-eel-time').value) || 3;
+            }
             
             document.getElementById('mainMenu').classList.add('hidden');
             const countdownEl = document.getElementById('preGameCountdown');
@@ -551,37 +774,174 @@
                 if(count > 0) numEl.innerText = count;
                 else { clearInterval(intv); countdownEl.classList.add('hidden'); actualGameStart(); }
             }, 1000);
+        };
+
+        window.forceEndGame = function(reason) { endGame(reason); };
+
+        window.nextSoloQ = function(pid) {
+            let player = pid === 1 ? p1 : p2;
+            const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
+            if(overlay) {
+                if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv));
+                overlay.remove();
+            }
+            generateQuestion(player);
+        };
+
+        // ==========================================
+        // 5. 遊戲核心邏輯
+        // ==========================================
+        function playBattleMusic() {
+            if(!isAudioInit) return;
+            if(battleAudio) { battleAudio.pause(); battleAudio.currentTime = 0; }
+            if(menuAudio) menuAudio.pause();
+            
+            do { battleTrackIdx = Math.floor(Math.random() * audioFiles.length); } while(battleTrackIdx === menuTrackIdx);
+            
+            battleAudio = new Audio(audioFiles[battleTrackIdx]);
+            battleAudio.loop = true;
+            battleAudio.volume = 0.5;
+            battleAudio.play().catch(e => console.log("Audio play error:", e));
         }
 
-        // --- 強制清理幽靈拖曳垃圾的機制 ---
-        let activeDrags = {}; 
+        function playMenuMusic() {
+            if(!isAudioInit) return;
+            if(battleAudio) battleAudio.pause();
+            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
+        }
 
+        // 渲染全球總積分排行榜
+        function renderGlobalLeaderboard() {
+            const t = i18n[currentLang];
+            let players = [];
+
+            if (isCloudEnabled && currentUser) {
+                players = Object.values(globalLeaderboardData);
+            } else {
+                // 如果無法連線，回退到 LocalStorage
+                players = Object.values(JSON.parse(localStorage.getItem('trigowar_players') || '{}'));
+            }
+            
+            // 嚴格過濾 0 分與無效分數的玩家，不記錄到總積分排行榜裡
+            players = players.filter(p => (Number(p.totalScore) || 0) > 0);
+            
+            players.sort((a, b) => {
+                let sA = a.totalScore !== undefined ? Number(a.totalScore) : 0;
+                let sB = b.totalScore !== undefined ? Number(b.totalScore) : 0;
+                return sB - sA;
+            });
+            players = players.slice(0, 5); 
+            
+            const list = document.getElementById('global-lb-list');
+            if (players.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無任何戰鬥紀錄</div>';
+                return;
+            }
+            list.innerHTML = '';
+            players.forEach((p, i) => {
+                let badge = i === 0 ? '👑' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : ''));
+                let sVal = p.totalScore !== undefined ? Number(p.totalScore) : 0;
+                list.innerHTML += `
+                    <div class="flex justify-between items-center px-3 py-2 bg-gray-800 rounded-lg border ${i===0?'border-yellow-500':'border-gray-700'}">
+                        <span class="${i<3?'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]':'text-gray-300'} font-bold">#${i+1} ${badge} ${p.name}</span>
+                        <span class="text-cyan-400 font-space font-bold text-base md:text-lg drop-shadow-[0_0_5px_#0ff]">${sVal}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // 渲染榜首之爭排行榜
+        function renderRankedLeaderboard() {
+            const t = i18n[currentLang];
+            let lb = [];
+
+            if (isCloudEnabled && currentUser) {
+                lb = Object.values(rankedLeaderboardData);
+            } else {
+                lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+            }
+
+            lb = lb.filter(e => (Number(e.score) || 0) > 0);
+            lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
+            lb = lb.slice(0, 10); 
+
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = '';
+            if (lb.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-500 py-3 font-bold">尚無有效戰鬥紀錄</div>';
+            } else {
+                let currentPid = rankData.grade ? `${rankData.grade}-${rankData.cls}-${rankData.sid}` : null;
+                lb.forEach((entry, idx) => {
+                    const isMe = (entry.pid === currentPid); 
+                    const c = entry.corrects || 0;
+                    const a = entry.acc || 0;
+                    listEl.innerHTML += `
+                        <div class="flex justify-between items-center bg-gray-800 px-3 py-2 rounded border border-gray-700 ${isMe ? 'bg-cyan-900/30 border-cyan-500' : ''}">
+                            <span class="font-bold ${idx < 3 ? 'text-yellow-300' : 'text-gray-300'}">#${idx+1} ${entry.name}</span>
+                            <div class="text-right leading-tight">
+                                <div class="font-space font-bold text-cyan-400 text-base">${entry.score} pts</div>
+                                <div class="text-[10px] md:text-xs text-gray-400">${t.lblCor}${c} | ${t.accLabel}: ${a}%</div>
+                            </div>
+                        </div>`;
+                });
+            }
+        }
+
+        const pythagoreanTriples = [
+            { o: 3, a: 4, h: 5 }, { o: 6, a: 8, h: 10 }, { o: 5, a: 12, h: 13 }, 
+            { o: 8, a: 15, h: 17 }, { o: 9, a: 12, h: 15 }, { o: 7, a: 24, h: 25 }
+        ];
+        const doubleTriples = [
+            { o: 12, a1: 5, h1: 13, a2: 9, h2: 15 }, { o: 12, a1: 5, h1: 13, a2: 16, h2: 20 },
+            { o: 12, a1: 9, h1: 15, a2: 16, h2: 20 }, { o: 15, a1: 8, h1: 17, a2: 20, h2: 25 },
+            { o: 24, a1: 7, h1: 25, a2: 18, h2: 30 }, { o: 8,  a1: 6, h1: 10, a2: 15, h2: 17 }
+        ];
+
+        const p1 = createPlayer(1, 'cyan', 'p1');
+        const p2 = createPlayer(2, 'purple', 'p2');
+        let p1ShipPos = 0; let p2ShipPos = 0;
+
+        function createPlayer(id, color, prefix) {
+            return {
+                id, color, prefix, score: 0, corrects: 0, wrongAttempts: 0, totalAttempts: 0, consecutiveWrongs: 0,
+                qStart: 0, currentQ: null, isGenerating: false, dndState: {},
+                isStunned: false, stunEndTime: 0
+            };
+        }
+
+        document.getElementById('chk-eel').addEventListener('change', function() {
+            const conf = document.getElementById('eel-time-config');
+            if(this.checked) {
+                conf.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                conf.classList.add('opacity-50', 'pointer-events-none');
+            }
+        });
+
+        let activeDrags = {}; 
         function cleanupDrags(pid) {
-            // 1. 清除 JS 記錄的拖曳狀態與其對應的 DOM ghost
             for (let pointerId in activeDrags) {
                 if (activeDrags[pointerId].pid === pid) {
-                    if (activeDrags[pointerId].ghostEl) {
-                        activeDrags[pointerId].ghostEl.remove();
-                    }
+                    if (activeDrags[pointerId].ghostEl) activeDrags[pointerId].ghostEl.remove();
                     delete activeDrags[pointerId];
                 }
             }
-            // 2. 雙重保險：強制消滅整個 document 裡面所有殘留的該玩家幽靈元素
             document.querySelectorAll(`.ghost-drag[data-pid="${pid}"]`).forEach(el => el.remove());
         }
 
         function actualGameStart() {
             document.getElementById('gameUI').classList.remove('hidden');
             
-            if(mode === 'PRACTICE') {
+            if(mode === 'PRACTICE' || mode === 'RANKED') {
                 document.body.classList.add('practice-active');
-                document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
+                if (mode === 'PRACTICE') document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
+                else document.getElementById('gameInfoText').innerText = i18n[currentLang].rankModeInfo;
             } else {
                 document.body.classList.remove('practice-active');
             }
             
-            p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.isStunned = false;
-            p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0; p2.isStunned = false;
+            p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.totalAttempts = 0; p1.consecutiveWrongs = 0; p1.isStunned = false;
+            p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0; p2.totalAttempts = 0; p2.consecutiveWrongs = 0; p2.isStunned = false;
             p1ShipPos = 0; p2ShipPos = 0;
             globalQuestionsAnswered = 0;
             soloTotalTimeMs = 0;
@@ -589,19 +949,17 @@
             startTime = Date.now();
             lasers = []; particles = [];
 
-            // 遊戲開始前，徹底清除全域殘留
             document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
             activeDrags = {};
-
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
             playBattleMusic();
 
             updateHeaderUI(); 
-            if(mode !== 'PRACTICE') updateHealthBar();
+            if(mode !== 'PRACTICE' && mode !== 'RANKED') updateHealthBar();
             
             generateQuestion(p1); 
-            if(mode !== 'PRACTICE') generateQuestion(p2);
+            if(mode !== 'PRACTICE' && mode !== 'RANKED') generateQuestion(p2);
 
             clearInterval(mainTimer);
             mainTimer = setInterval(gameTick, 100);
@@ -612,12 +970,12 @@
             if(gameState !== 'PLAYING') return;
             
             const t = i18n[currentLang];
-            if(mode === 'TIME') {
+            if(mode === 'TIME' || (mode === 'RANKED' && rankData.rule === 'time')) {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const left = Math.max(0, maxTime - elapsed);
                 document.getElementById('gameInfoText').innerText = t.timeLeft(left);
                 if(left <= 0) forceEndGame(t.timeUp);
-            } else if (mode === 'COUNT' || mode === 'PRACTICE') {
+            } else if (mode === 'COUNT' || mode === 'PRACTICE' || (mode === 'RANKED' && rankData.rule === 'count')) {
                 document.getElementById('gameInfoText').innerText = t.prog(globalQuestionsAnswered, maxCount);
                 if(globalQuestionsAnswered >= maxCount) {
                     forceEndGame(mode === 'PRACTICE' ? t.missionComplete : t.countReached);
@@ -625,7 +983,7 @@
             }
 
             [p1, p2].forEach(player => {
-                if(mode === 'PRACTICE' && player.id === 2) return; 
+                if((mode === 'PRACTICE' || mode === 'RANKED') && player.id === 2) return; 
                 
                 if (player.isStunned) {
                     const left = Math.ceil((player.stunEndTime - Date.now()) / 1000);
@@ -645,7 +1003,7 @@
                     const left = Math.max(0, maxPersonalTime - elapsed);
                     
                     document.getElementById(`timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
-                    if(mode === 'PRACTICE') {
+                    if(mode === 'PRACTICE' || mode === 'RANKED') {
                         document.getElementById(`solo-timer-bar-${player.prefix}`).style.width = `${(left/maxPersonalTime)*100}%`;
                     }
                     
@@ -663,7 +1021,7 @@
         }
 
         function updateHealthBar() {
-            if(mode === 'PRACTICE') return;
+            if(mode === 'PRACTICE' || mode === 'RANKED') return;
             const diff = p1ShipPos - p2ShipPos;
             let p1Percent = 50 + (diff / 7) * 50;
             p1Percent = Math.max(0, Math.min(100, p1Percent));
@@ -676,6 +1034,36 @@
                 const t = i18n[currentLang];
                 setTimeout(() => forceEndGame(diff > 0 ? t.winP1 : t.winP2), 500);
             }
+        }
+
+        function showScoreAnimation(player, delta) {
+            const scoreEl = document.getElementById(`p${player.id}-score`);
+            if(!scoreEl) return;
+            const rect = scoreEl.getBoundingClientRect();
+            const floatEl = document.createElement('div');
+            floatEl.className = 'score-float font-space';
+            floatEl.style.left = `${rect.right + 15}px`;
+            floatEl.style.top = `${rect.top - 5}px`;
+            
+            if (delta > 0) {
+                floatEl.innerText = `+${delta}`;
+                floatEl.style.color = '#4ade80';
+                floatEl.style.textShadow = '0 0 10px #16a34a';
+            } else {
+                floatEl.innerText = `${delta}`;
+                floatEl.style.color = '#ef4444';
+                floatEl.style.textShadow = '0 0 10px #dc2626';
+            }
+            document.body.appendChild(floatEl);
+            setTimeout(() => floatEl.remove(), 1000);
+        }
+
+        function addScore(player, pts) {
+            const oldScore = player.score;
+            player.score = Math.max(0, player.score + pts);
+            const delta = player.score - oldScore;
+            if (delta !== 0) showScoreAnimation(player, delta);
+            updateHeaderUI();
         }
 
         function applyStun(player) {
@@ -700,13 +1088,36 @@
 
         function triggerCorrectAnswer(player) {
             player.isGenerating = true;
+            player.consecutiveWrongs = 0; 
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
+
+            if(mode === 'RANKED') {
+                let timeTaken = Date.now() - player.qStart;
+                if (timeTaken > maxPersonalTime * 1000) timeTaken = maxPersonalTime * 1000;
+                soloTotalTimeMs += timeTaken;
+                const pts = Math.max(10, 120 - Math.floor(timeTaken / 1000));
+                
+                addScore(player, pts);
+                player.corrects++;
+                globalQuestionsAnswered++;
+
+                const ws = document.getElementById(`${player.prefix}-workspace`);
+                ws.classList.add('flash-correct');
+                const dzs = ws.querySelectorAll('.drop-zone.filled');
+                dzs.forEach(dz => dz.classList.add('flash-correct'));
+
+                setTimeout(() => { 
+                    ws.classList.remove('flash-correct'); 
+                    generateQuestion(player); 
+                }, 600);
+                return;
+            }
 
             if(mode === 'PRACTICE') { showSoloFeedback(player, true); return; }
 
             const timeTaken = Math.floor((Date.now() - player.qStart) / 1000);
             const points = Math.max(10, 120 - timeTaken);
-            player.score += points;
+            addScore(player, points);
             player.corrects++;
             globalQuestionsAnswered++;
             
@@ -729,30 +1140,60 @@
         }
 
         function triggerWrongAnswer(player, isTimeout = false) {
+            let qDiff = player.currentQ ? player.currentQ.difficulty : difficulty;
+            
+            if (mode === 'RANKED') {
+                if (isTimeout) {
+                    player.consecutiveWrongs = 0; 
+                    generateQuestion(player);
+                    return;
+                }
+                
+                player.consecutiveWrongs++;
+                const penalty = 20 + (player.consecutiveWrongs * 33);
+                addScore(player, -penalty);
+                player.wrongAttempts++;
+
+                const ws = document.getElementById(`${player.prefix}-workspace`);
+                ws.classList.add('shake-err');
+                setTimeout(() => ws.classList.remove('shake-err'), 300);
+
+                applyStun(player); 
+                
+                player.isGenerating = true;
+                setTimeout(() => {
+                    cleanupDrags(player.id);
+                    generateQuestion(player);
+                    player.isGenerating = false;
+                }, 300);
+                return;
+            }
+
             if(mode === 'PRACTICE') {
                 if (isTimeout) {
                     player.isGenerating = true;
+                    player.consecutiveWrongs = 0;
                     document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
                     showSoloFeedback(player, false, true); 
                     return;
                 }
                 
-                player.score = Math.max(0, player.score - 20);
-                updateHeaderUI();
+                player.consecutiveWrongs++;
+                const penalty = 20 + (player.consecutiveWrongs * 33);
+                addScore(player, -penalty);
 
                 player.wrongAttempts++;
                 const ws = document.getElementById(`${player.prefix}-workspace`);
                 ws.classList.add('shake-err');
                 setTimeout(() => ws.classList.remove('shake-err'), 300);
 
-                if (player.wrongAttempts >= 2 || difficulty >= 2) {
+                if (player.wrongAttempts >= 2 || qDiff >= 2) {
                     player.isGenerating = true; 
                     showSoloFeedback(player, false, false); 
                 } else {
-                    if (difficulty === 1) {
+                    if (qDiff === 1) {
                         if (eelEnabled) applyStun(player);
                         player.dndState = {};
-                        // 修改：在即將重新渲染前清理，防止重疊延遲導致卡死
                         cleanupDrags(player.id); 
                         setTimeout(() => renderLevel1Workspace(player), 300);
                     }
@@ -760,10 +1201,13 @@
                 return;
             }
 
-            // VS 模式邏輯
             player.isGenerating = true;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
-            player.score = Math.max(0, player.score - 20); 
+            
+            player.consecutiveWrongs++;
+            const penalty = 20 + (player.consecutiveWrongs * 33);
+            addScore(player, -penalty); 
+            
             player.wrongAttempts++;
             updateHeaderUI();
             
@@ -773,7 +1217,7 @@
 
             if (eelEnabled && !isTimeout) applyStun(player);
 
-            if(difficulty === 2 || difficulty === 3) {
+            if(qDiff === 2 || qDiff === 3) {
                 setTimeout(() => generateQuestion(player), 400);
             } else {
                 if((Date.now() - player.qStart) >= (maxPersonalTime*1000) || isTimeout) { 
@@ -796,11 +1240,10 @@
 
             if (isCorrect) {
                 const pts = Math.max(10, 120 - Math.floor(timeTaken / 1000));
-                player.score += pts;
+                addScore(player, pts);
                 player.corrects++;
                 globalQuestionsAnswered++;
             }
-            updateHeaderUI();
 
             const overlay = document.createElement('div');
             const t = i18n[currentLang];
@@ -874,16 +1317,6 @@
             document.body.appendChild(overlay);
         }
 
-        function nextSoloQ(pid) {
-            let player = pid === 1 ? p1 : p2;
-            const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
-            if(overlay) {
-                if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv));
-                overlay.remove();
-            }
-            generateQuestion(player);
-        }
-
         function fmt(num) {
             if(typeof num !== 'number') return num; 
             if(Number.isInteger(num)) return num;
@@ -903,8 +1336,6 @@
             window.requestAnimationFrame(step);
         }
 
-        function forceEndGame(reason) { endGame(reason); }
-
         function endGame(reason) {
             gameState = 'END';
             clearInterval(mainTimer);
@@ -916,7 +1347,6 @@
             });
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
-            // 確保遊戲結束時徹底消除全域殘留
             document.querySelectorAll('.ghost-drag').forEach(el => el.remove());
             activeDrags = {};
 
@@ -925,29 +1355,103 @@
             
             playMenuMusic();
 
-            if(mode === 'PRACTICE') {
+            const t = i18n[currentLang];
+
+            if(mode === 'PRACTICE' || mode === 'RANKED') {
                 document.getElementById('p2-res-box').classList.add('hidden');
                 document.getElementById('res-time-box1').classList.remove('hidden');
                 document.getElementById('res-time1').innerText = (soloTotalTimeMs / 1000).toFixed(1);
+                
+                if (mode === 'RANKED') {
+                    document.getElementById('leaderboard-box').classList.remove('hidden');
+                    
+                    let dName = rankData.displayType === 'nick' && rankData.nick ? rankData.nick : rankData.sid;
+                    let entryName = `${rankData.grade}${rankData.cls} ${dName}`;
+                    let accNum = p1.totalAttempts > 0 ? parseFloat(((p1.corrects / p1.totalAttempts) * 100).toFixed(1)) : 0;
+                    let pid = `${rankData.grade}-${rankData.cls}-${rankData.sid}`; 
+
+                    // --- 儲存分數到雲端或本地端 ---
+                    if (p1.score > 0) {
+                        if (isCloudEnabled && currentUser && db) {
+                            // 寫入雲端 Ranked Leaderboard (保留最高分)
+                            const rankedRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranked_leaderboard', pid);
+                            const currentRanked = rankedLeaderboardData[pid];
+                            if (!currentRanked || p1.score > currentRanked.score || (p1.score === currentRanked.score && accNum > currentRanked.acc)) {
+                                setDoc(rankedRef, {
+                                    pid: pid,
+                                    name: entryName,
+                                    score: Number(p1.score),
+                                    corrects: Number(p1.corrects),
+                                    acc: accNum,
+                                    time: Date.now()
+                                }, { merge: true }).catch(e => console.error("Cloud Error", e));
+                            }
+
+                            // 寫入雲端 Global Leaderboard (累加總分)
+                            const globalRef = doc(db, 'artifacts', appId, 'public', 'data', 'global_leaderboard', pid);
+                            const currentGlobal = globalLeaderboardData[pid];
+                            const newTotal = (currentGlobal ? (Number(currentGlobal.totalScore) || 0) : 0) + Number(p1.score);
+                            setDoc(globalRef, {
+                                pid: pid,
+                                name: entryName,
+                                nick: rankData.nick,
+                                totalScore: newTotal
+                            }, { merge: true }).catch(e => console.error("Cloud Error", e));
+                            
+                        } else {
+                            // 退回本機 LocalStorage 儲存
+                            let lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+                            lb = lb.filter(e => (Number(e.score) || 0) > 0);
+                            let newEntry = { pid: pid, name: entryName, score: Number(p1.score) || 0, corrects: Number(p1.corrects) || 0, acc: accNum, time: Date.now() };
+                            let existingIdx = lb.findIndex(e => e.pid === pid);
+                            if (existingIdx !== -1) {
+                                if (newEntry.score > lb[existingIdx].score || (newEntry.score === lb[existingIdx].score && newEntry.acc > lb[existingIdx].acc)) {
+                                    lb[existingIdx] = newEntry;
+                                }
+                            } else {
+                                lb.push(newEntry);
+                            }
+                            lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
+                            lb = lb.slice(0, 10); 
+                            localStorage.setItem('trigowar_ranked_lb', JSON.stringify(lb));
+                            
+                            let players = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                            if (!players[pid]) players[pid] = { name: entryName, totalScore: 0, nick: rankData.nick };
+                            players[pid].name = entryName; 
+                            players[pid].nick = rankData.nick; 
+                            players[pid].totalScore = (Number(players[pid].totalScore) || 0) + newEntry.score;
+                            localStorage.setItem('trigowar_players', JSON.stringify(players));
+                        }
+                    }
+
+                    // 強制觸發一次渲染，避免網路延遲時畫面為空
+                    renderRankedLeaderboard();
+
+                } else {
+                    document.getElementById('leaderboard-box').classList.add('hidden');
+                }
             } else {
                 document.getElementById('p2-res-box').classList.remove('hidden');
                 document.getElementById('res-time-box1').classList.add('hidden');
+                document.getElementById('leaderboard-box').classList.add('hidden');
             }
 
-            const t = i18n[currentLang];
             let finalReason = reason;
 
             if (!reason) {
-                if (p1.score > p2.score) finalReason = t.winP1;
-                else if (p2.score > p1.score) finalReason = t.winP2;
-                else finalReason = t.draw;
-                if (mode === 'PRACTICE') finalReason = t.missionComplete;
+                if (mode === 'RANKED' || mode === 'PRACTICE') {
+                    finalReason = t.missionComplete;
+                } else {
+                    if (p1.score > p2.score) finalReason = t.winP1;
+                    else if (p2.score > p1.score) finalReason = t.winP2;
+                    else finalReason = t.draw;
+                }
             }
             document.getElementById('endTitle').innerText = finalReason;
 
             animateValue(document.getElementById('res-score1'), 0, p1.score, 3000);
             animateValue(document.getElementById('res-cor1'), 0, p1.corrects, 2000);
-            if(mode !== 'PRACTICE') {
+            if(mode !== 'PRACTICE' && mode !== 'RANKED') {
                 animateValue(document.getElementById('res-score2'), 0, p2.score, 3000);
                 animateValue(document.getElementById('res-cor2'), 0, p2.corrects, 2000);
             }
@@ -964,7 +1468,7 @@
         }
 
         function generateQuestion(player) {
-            cleanupDrags(player.id); // 換題前強制除靈
+            cleanupDrags(player.id); 
 
             player.qStart = Date.now();
             player.isGenerating = false;
@@ -972,8 +1476,14 @@
             player.wrongAttempts = 0;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
             
+            let qDiff = difficulty;
+            if (mode === 'RANKED') {
+                let rand = Math.floor(Math.random() * 20); 
+                qDiff = rand < 10 ? 1 : (rand < 17 ? 2 : 3); 
+            }
+
             let o, a, h;
-            const useLetters = difficulty === 1 && Math.random() > 0.5;
+            const useLetters = qDiff === 1 && Math.random() > 0.5;
             if(useLetters) {
                 const lSets = [['a', 'b', 'c'], ['x', 'y', 'z'], ['p', 'q', 'r']];
                 const ls = lSets[Math.floor(Math.random() * lSets.length)];
@@ -990,11 +1500,11 @@
             const func = funcs[Math.floor(Math.random() * funcs.length)];
             const rot = Math.floor(Math.random() * 360); 
             
-            let q = { math: {o, a, h}, func, type: 0, rotation: rot, isComposite: false };
+            let q = { math: {o, a, h}, func, type: 0, rotation: rot, isComposite: false, difficulty: qDiff };
             q.correctNum = func === 'sin' ? o : (func === 'cos' ? a : o);
             q.correctDen = func === 'tan' ? a : h;
 
-            if (difficulty === 3) {
+            if (qDiff === 3) {
                 const pair = doubleTriples[Math.floor(Math.random() * doubleTriples.length)];
                 const swapLR = Math.random() > 0.5;
                 const a1 = swapLR ? pair.a2 : pair.a1;
@@ -1098,7 +1608,7 @@
                 return;
             }
 
-            if(difficulty === 2) {
+            if(qDiff === 2) {
                 q.type = Math.floor(Math.random() * 5) + 1; 
             } else {
                 q.type = Math.floor(Math.random() * 3) + 1; 
@@ -1345,6 +1855,7 @@
                     e.preventDefault();
                     if (btn.dataset.clicked) return; 
                     btn.dataset.clicked = "true";
+                    player.totalAttempts++;
                     if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
                 };
                 btn.onclick = (e) => e.preventDefault(); 
@@ -1377,6 +1888,7 @@
                     e.preventDefault();
                     if (btn.dataset.clicked) return;
                     btn.dataset.clicked = "true";
+                    player.totalAttempts++;
                     if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
                 };
                 btn.onclick = (e) => e.preventDefault(); 
@@ -1385,7 +1897,7 @@
         }
 
         function renderLevel1Workspace(player) {
-            cleanupDrags(player.id); // 重新渲染區塊前，徹底清除過往拖曳殘留
+            cleanupDrags(player.id); 
             const q = player.currentQ;
             const promptEl = document.getElementById(`${player.prefix}-prompt`);
             const svgEl = document.getElementById(`${player.prefix}-svg-container`);
@@ -1491,7 +2003,6 @@
             el.removeEventListener('pointerup', handleDragEnd);
             el.removeEventListener('pointercancel', handleDragEnd);
             
-            // 加入安全保護：若元素已因時間到等因素消失，防止捕捉拋出錯誤卡死系統
             try { 
                 if (el.hasPointerCapture(e.pointerId)) {
                     el.releasePointerCapture(e.pointerId); 
@@ -1499,7 +2010,6 @@
             } catch(err) {} 
             
             const drag = activeDrags[e.pointerId];
-            // 若該拖曳任務已被 cleanupDrags 回收，直接中斷執行
             if(!drag) return; 
 
             drag.ghostEl.style.visibility = 'hidden'; 
@@ -1515,7 +2025,6 @@
                 drag.element.style.opacity = '1';
             }
 
-            // 安全移除幽靈元素
             if (drag.ghostEl && drag.ghostEl.parentNode) {
                 drag.ghostEl.remove(); 
             }
@@ -1528,9 +2037,9 @@
             if (q.type === 1) { 
                 if(target === 'num') player.dndState.num = val;
                 if(target === 'den') player.dndState.den = val;
-                renderLevel1Workspace(player);
-
+                
                 if (player.dndState.num && player.dndState.den) {
+                    player.totalAttempts++; 
                     checkTriggered = true;
                     if (player.dndState.num == q.correctNum && player.dndState.den == q.correctDen) triggerCorrectAnswer(player);
                     else triggerWrongAnswer(player, false);
@@ -1538,13 +2047,13 @@
             } 
             else if (q.type === 2) { 
                 player.dndState.func = val;
-                renderLevel1Workspace(player);
+                player.totalAttempts++;
                 checkTriggered = true;
                 if (val === q.func) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
             }
             else if (q.type === 3) { 
                 player.dndState.angle = target;
-                renderLevel1Workspace(player);
+                player.totalAttempts++;
                 checkTriggered = true;
                 if (target === 'angle_bottom') triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
             }
@@ -1587,7 +2096,7 @@
 
             if(gameState !== 'PLAYING') { requestAnimationFrame(renderCanvas); return; }
 
-            if (mode !== 'PRACTICE') {
+            if (mode !== 'PRACTICE' && mode !== 'RANKED') {
                 ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.beginPath();
                 ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
                 ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
@@ -1627,8 +2136,9 @@
 
         window.onload = function() {
             document.getElementById('audio-init-overlay').classList.remove('hidden');
+            renderGlobalLeaderboard(); 
             resizeCanvas(); renderCanvas();
-        }
+        };
     </script>
 </body>
 </html>
