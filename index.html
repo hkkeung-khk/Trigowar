@@ -181,6 +181,7 @@
         <div class="top-bar pointer-events-auto bg-black/60 backdrop-blur-sm border-b border-gray-800 p-2 md:p-4 flex flex-col gap-1 md:gap-2 shrink-0">
             <div class="flex justify-between items-center px-1">
                 <button id="btn-end" onclick="forceEndGame()" class="px-3 py-1 bg-red-600/80 text-white rounded text-sm font-bold hover:bg-red-500 transition shadow-[0_0_10px_rgba(239,68,68,0.5)]">結束遊戲</button>
+                <button id="btn-pause" onclick="togglePause()" class="hidden px-3 py-1 bg-yellow-600/80 text-white rounded text-sm font-bold hover:bg-yellow-500 transition shadow-[0_0_10px_rgba(202,138,4,0.5)]">暫停</button>
                 <div id="gameInfoText" class="text-yellow-400 font-bold font-space text-sm md:text-lg tracking-widest drop-shadow-[0_0_5px_#facc15]">進度載入中...</div>
                 <div class="w-[80px]"></div>
             </div>
@@ -511,6 +512,8 @@
         let eelDuration = 3;
 
         let gameState = 'INIT'; 
+        let isPaused = false;
+        let pauseStartTime = 0;
         let startTime = 0;
         let mainTimer = null;
         let globalQuestionsAnswered = 0;
@@ -758,6 +761,52 @@
 
         window.forceEndGame = function(reason) { endGame(reason); };
 
+        window.togglePause = function() {
+            if (gameState !== 'PLAYING') return;
+            const btn = document.getElementById('btn-pause');
+
+            if (!isPaused) {
+                // 觸發暫停
+                isPaused = true;
+                pauseStartTime = Date.now();
+                btn.innerText = currentLang === 'zh' ? '繼續' : 'Resume';
+                document.getElementById('gameInfoText').innerText = currentLang === 'zh' ? '暫停中 / PAUSED' : 'PAUSED';
+            } else {
+                // 解除暫停，進入倒數 3 秒
+                btn.disabled = true;
+                btn.innerText = currentLang === 'zh' ? '準備' : 'Ready';
+                
+                const countdownEl = document.getElementById('preGameCountdown');
+                const numEl = document.getElementById('countdownNumber');
+                countdownEl.classList.remove('hidden');
+                
+                let count = 3; 
+                numEl.innerText = count;
+                
+                let intv = setInterval(() => {
+                    count--;
+                    if(count > 0) {
+                        numEl.innerText = count;
+                    } else {
+                        clearInterval(intv); 
+                        countdownEl.classList.add('hidden'); 
+                        
+                        // 將所有時間戳偏移，彌補暫停期間流失的時間
+                        const pauseDuration = Date.now() - pauseStartTime;
+                        startTime += pauseDuration;
+                        if (p1.qStart) p1.qStart += pauseDuration;
+                        if (p2.qStart) p2.qStart += pauseDuration;
+                        if (p1.stunEndTime) p1.stunEndTime += pauseDuration;
+                        if (p2.stunEndTime) p2.stunEndTime += pauseDuration;
+                        
+                        isPaused = false;
+                        btn.disabled = false;
+                        btn.innerText = currentLang === 'zh' ? '暫停' : 'Pause';
+                    }
+                }, 1000);
+            }
+        };
+
         window.nextSoloQ = function(pid) {
             let player = pid === 1 ? p1 : p2;
             const overlay = document.getElementById(`practice-overlay-${player.prefix}`);
@@ -897,12 +946,25 @@
             
             if(mode === 'PRACTICE' || mode === 'RANKED') {
                 document.body.classList.add('practice-active');
-                if (mode === 'PRACTICE') document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
-                else document.getElementById('gameInfoText').innerText = i18n[currentLang].rankModeInfo;
+                if (mode === 'PRACTICE') {
+                    document.getElementById('gameInfoText').innerText = i18n[currentLang].pracModeInfo;
+                    document.getElementById('btn-end').classList.remove('hidden');
+                    document.getElementById('btn-pause').classList.add('hidden');
+                } else {
+                    document.getElementById('gameInfoText').innerText = i18n[currentLang].rankModeInfo;
+                    document.getElementById('btn-end').classList.add('hidden');
+                    const btnPause = document.getElementById('btn-pause');
+                    btnPause.classList.remove('hidden');
+                    btnPause.innerText = currentLang === 'zh' ? '暫停' : 'Pause';
+                    btnPause.disabled = false;
+                }
             } else {
                 document.body.classList.remove('practice-active');
+                document.getElementById('btn-end').classList.remove('hidden');
+                document.getElementById('btn-pause').classList.add('hidden');
             }
             
+            isPaused = false;
             p1.score = 0; p1.corrects = 0; p1.wrongAttempts = 0; p1.totalAttempts = 0; p1.consecutiveWrongs = 0; p1.isStunned = false;
             p2.score = 0; p2.corrects = 0; p2.wrongAttempts = 0; p2.totalAttempts = 0; p2.consecutiveWrongs = 0; p2.isStunned = false;
             p1ShipPos = 0; p2ShipPos = 0;
@@ -930,7 +992,7 @@
         }
 
         function gameTick() {
-            if(gameState !== 'PLAYING') return;
+            if(gameState !== 'PLAYING' || isPaused) return;
             
             const t = i18n[currentLang];
             if(mode === 'TIME' || (mode === 'RANKED' && rankData.rule === 'time')) {
@@ -1301,6 +1363,7 @@
 
         function endGame(reason) {
             gameState = 'END';
+            isPaused = false;
             clearInterval(mainTimer);
             document.getElementById('gameUI').classList.add('hidden');
             
@@ -1803,7 +1866,7 @@
                 
                 btn.onpointerdown = (e) => {
                     e.preventDefault();
-                    if (btn.dataset.clicked) return; 
+                    if (isPaused || btn.dataset.clicked) return; 
                     btn.dataset.clicked = "true";
                     player.totalAttempts++;
                     if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
@@ -1836,7 +1899,7 @@
                 
                 btn.onpointerdown = (e) => {
                     e.preventDefault();
-                    if (btn.dataset.clicked) return;
+                    if (isPaused || btn.dataset.clicked) return;
                     btn.dataset.clicked = "true";
                     player.totalAttempts++;
                     if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false);
@@ -1916,7 +1979,7 @@
         function handleDragStart(e) {
             e.preventDefault();
             const el = e.currentTarget;
-            if(el.style.opacity === '0.3' || activeDrags[e.pointerId]) return;
+            if(isPaused || el.style.opacity === '0.3' || activeDrags[e.pointerId]) return;
 
             const ghost = el.cloneNode(true); 
             ghost.classList.add('ghost-drag');
@@ -2040,7 +2103,9 @@
             stars.forEach(s => {
                 ctx.globalAlpha = Math.random()*0.5 + 0.3;
                 ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
-                s.y += s.speed; if(s.y > canvasH) s.y = 0;
+                if (!isPaused) {
+                    s.y += s.speed; if(s.y > canvasH) s.y = 0;
+                }
             });
             ctx.globalAlpha = 1.0;
 
@@ -2051,7 +2116,8 @@
                 ctx.moveTo(p1Ships[0].x, p1Ships[0].y); ctx.lineTo(p1Ships[7].x, p1Ships[7].y);
                 ctx.moveTo(p2Ships[0].x, p2Ships[0].y); ctx.lineTo(p2Ships[7].x, p2Ships[7].y); ctx.stroke();
 
-                const now = Date.now(); const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
+                const now = isPaused ? pauseStartTime : Date.now();
+                const f1 = Math.sin(now/400) * 6; const f2 = Math.cos(now/400) * 6;
 
                 ctx.font = '28px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 
@@ -2064,17 +2130,21 @@
             }
 
             for(let i=lasers.length-1; i>=0; i--) {
-                const l = lasers[i]; l.prog += 0.2;
+                const l = lasers[i]; 
+                if (!isPaused) l.prog += 0.2;
                 const cx = l.x + (l.tx - l.x)*l.prog; const cy = l.y + (l.ty - l.y)*l.prog;
                 
                 ctx.strokeStyle = l.color; ctx.lineWidth = 4; ctx.shadowColor = l.color; ctx.shadowBlur = 10;
                 ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(cx, cy); ctx.stroke(); ctx.shadowBlur = 0;
 
-                if(l.prog >= 1) { createExplosion(l.tx, l.ty, l.color); lasers.splice(i, 1); }
+                if(l.prog >= 1 && !isPaused) { createExplosion(l.tx, l.ty, l.color); lasers.splice(i, 1); }
             }
 
             for(let i=particles.length-1; i>=0; i--) {
-                const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+                const p = particles[i]; 
+                if (!isPaused) {
+                    p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+                }
                 if(p.life <= 0) particles.splice(i, 1);
                 else {
                     ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
