@@ -400,79 +400,54 @@
         <button id="btn-back-menu" onclick="showMenu()" class="mt-8 px-6 py-2 md:px-8 md:py-3 bg-white text-black rounded-full text-lg md:text-xl font-bold hover:scale-105 transition shadow-[0_0_15px_rgba(255,255,255,0.5)]">返回主畫面</button>
     </div>
 
-    <!-- Firebase 資料庫與遊戲主腳本 -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <!-- 遊戲主腳本 -->
+    <script>
         // ==========================================
-        // 1. Firebase 實時資料庫初始化
+        // 1. Google Apps Script 雲端排行榜設定
         // ==========================================
-        let db, auth, appId;
-        let currentUser = null;
-        let globalLeaderboardData = {};
-        let rankedLeaderboardData = {};
-        let isCloudEnabled = false;
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyX3j_4orMOOYSkm9kSOBGbXeuDo_oPhi2rC5gthAUIq0VyIIY1Ax7zHZHBMoExhOswqw/exec"; 
 
-        try {
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            if(firebaseConfig) {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'trigo-defender';
-                isCloudEnabled = true;
+        let globalLeaderboardData = [];
+        let rankedLeaderboardData = [];
 
-                const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                };
-                initAuth();
-
-                onAuthStateChanged(auth, (user) => {
-                    currentUser = user;
-                    if (user) {
-                        setupDatabaseListeners();
-                    }
-                });
-            }
-        } catch(e) {
-            console.error("Firebase init failed, fallback to LocalStorage", e);
-        }
-
-        // ==========================================
-        // 2. 實時同步監聽設定
-        // ==========================================
-        function setupDatabaseListeners() {
-            // 監聽：全球總積分排行榜
-            const globalCol = collection(db, 'artifacts', appId, 'public', 'data', 'global_leaderboard');
-            onSnapshot(globalCol, (snapshot) => {
-                globalLeaderboardData = {};
-                snapshot.forEach(doc => {
-                    globalLeaderboardData[doc.id] = doc.data();
-                });
+        async function fetchLeaderboards() {
+            if (!GAS_URL.startsWith("http")) return; 
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                if(data.global) globalLeaderboardData = data.global;
+                if(data.ranked) rankedLeaderboardData = data.ranked;
                 renderGlobalLeaderboard();
-            }, (error) => console.error("Global DB error:", error));
-
-            // 監聽：榜首之爭排行榜
-            const rankedCol = collection(db, 'artifacts', appId, 'public', 'data', 'ranked_leaderboard');
-            onSnapshot(rankedCol, (snapshot) => {
-                rankedLeaderboardData = {};
-                snapshot.forEach(doc => {
-                    rankedLeaderboardData[doc.id] = doc.data();
-                });
                 if(gameState === 'END' && mode === 'RANKED') {
                     renderRankedLeaderboard();
                 }
-            }, (error) => console.error("Ranked DB error:", error));
+            } catch(e) {
+                console.error("讀取雲端排行榜失敗:", e);
+            }
+        }
+
+        async function submitScoreToCloud(playerData) {
+            if (!GAS_URL.startsWith("http")) return;
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(playerData)
+                });
+                const data = await response.json();
+                if(data.global) globalLeaderboardData = data.global;
+                if(data.ranked) rankedLeaderboardData = data.ranked;
+                renderGlobalLeaderboard();
+                if(gameState === 'END' && mode === 'RANKED') {
+                    renderRankedLeaderboard();
+                }
+            } catch(e) {
+                console.error("寫入雲端分數失敗:", e);
+            }
         }
 
         // ==========================================
-        // 3. 全局變數與設定
+        // 2. 全局變數與設定
         // ==========================================
         let currentLang = 'zh';
         const i18n = {
@@ -556,7 +531,7 @@
         let battleTrackIdx = -1;
 
         // ==========================================
-        // 4. 將需要被 HTML inline onclick 呼叫的函式綁定到 window 
+        // 3. 介面與選項邏輯 (Global Scope)
         // ==========================================
         window.setLang = function(lang) {
             currentLang = lang;
@@ -694,10 +669,19 @@
             const cls = document.getElementById('rank-class').value;
             const sid = document.getElementById('rank-sid').value;
             if (grade && cls && sid) {
-                let players = isCloudEnabled ? globalLeaderboardData : JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                let playersObj = {};
+                if (globalLeaderboardData.length > 0) {
+                    globalLeaderboardData.forEach(p => { playersObj[p.pid] = p; });
+                } else {
+                    playersObj = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                }
+
                 let pid = `${grade}-${cls}-${sid}`;
-                if (players[pid] && players[pid].nick) {
-                    document.getElementById('rank-nick').value = players[pid].nick;
+                if (playersObj[pid] && playersObj[pid].name) {
+                    let n = playersObj[pid].name.split(' ');
+                    if(n.length > 1) {
+                        document.getElementById('rank-nick').value = n.slice(1).join(' ');
+                    }
                 }
             }
         };
@@ -742,14 +726,10 @@
                     showError(i18n[currentLang].rankProfanity); return;
                 }
 
-                let players = isCloudEnabled ? globalLeaderboardData : JSON.parse(localStorage.getItem('trigowar_players') || '{}');
                 let currentPid = `${grade}-${cls}-${sid}`;
-                if (nick) {
-                    for (let pid in players) {
-                        if (pid !== currentPid && players[pid].nick === nick) {
-                            showError(currentLang === 'zh' ? "⚠️ 此暱稱已被他人使用，請換一個！" : "⚠️ Nickname already taken!"); return;
-                        }
-                    }
+                let isTaken = globalLeaderboardData.some(p => p.pid !== currentPid && p.name && p.name.includes(nick));
+                if(nick && isTaken) {
+                    showError(currentLang === 'zh' ? "⚠️ 此暱稱已被他人使用，請換一個！" : "⚠️ Nickname already taken!"); return;
                 }
 
                 document.getElementById('menu-error').classList.add('hidden');
@@ -789,7 +769,7 @@
         };
 
         // ==========================================
-        // 5. 遊戲核心邏輯
+        // 4. 遊戲核心與排行榜渲染
         // ==========================================
         function playBattleMusic() {
             if(!isAudioInit) return;
@@ -810,26 +790,21 @@
             if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
         }
 
-        // 渲染全球總積分排行榜
         function renderGlobalLeaderboard() {
             const t = i18n[currentLang];
-            let players = [];
-
-            if (isCloudEnabled && currentUser) {
-                players = Object.values(globalLeaderboardData);
-            } else {
-                // 如果無法連線，回退到 LocalStorage
-                players = Object.values(JSON.parse(localStorage.getItem('trigowar_players') || '{}'));
+            let players = globalLeaderboardData; 
+            
+            if (players.length === 0) {
+                let localPlayers = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                players = Object.values(localPlayers).map(p => ({
+                    pid: p.pid,
+                    name: p.name,
+                    totalScore: p.totalScore
+                }));
             }
             
-            // 嚴格過濾 0 分與無效分數的玩家，不記錄到總積分排行榜裡
             players = players.filter(p => (Number(p.totalScore) || 0) > 0);
-            
-            players.sort((a, b) => {
-                let sA = a.totalScore !== undefined ? Number(a.totalScore) : 0;
-                let sB = b.totalScore !== undefined ? Number(b.totalScore) : 0;
-                return sB - sA;
-            });
+            players.sort((a, b) => (Number(b.totalScore) || 0) - (Number(a.totalScore) || 0));
             players = players.slice(0, 5); 
             
             const list = document.getElementById('global-lb-list');
@@ -850,14 +825,11 @@
             });
         }
 
-        // 渲染榜首之爭排行榜
         function renderRankedLeaderboard() {
             const t = i18n[currentLang];
-            let lb = [];
+            let lb = rankedLeaderboardData; 
 
-            if (isCloudEnabled && currentUser) {
-                lb = Object.values(rankedLeaderboardData);
-            } else {
+            if (lb.length === 0) {
                 lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
             }
 
@@ -908,15 +880,6 @@
                 isStunned: false, stunEndTime: 0
             };
         }
-
-        document.getElementById('chk-eel').addEventListener('change', function() {
-            const conf = document.getElementById('eel-time-config');
-            if(this.checked) {
-                conf.classList.remove('opacity-50', 'pointer-events-none');
-            } else {
-                conf.classList.add('opacity-50', 'pointer-events-none');
-            }
-        });
 
         let activeDrags = {}; 
         function cleanupDrags(pid) {
@@ -1032,7 +995,7 @@
 
             if (Math.abs(diff) >= 7) {
                 const t = i18n[currentLang];
-                setTimeout(() => forceEndGame(diff > 0 ? t.winP1 : t.winP2), 500);
+                setTimeout(() => window.forceEndGame(diff > 0 ? t.winP1 : t.winP2), 500);
             }
         }
 
@@ -1253,7 +1216,7 @@
             
             if(isCorrect) {
                 overlay.style.borderColor = "#4ade80";
-                overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space drop-shadow-[0_0_10px_#4ade80]">${t.pracCorrect}</div><button onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:bg-green-500 transition">▶ ${t.btnNext}</button>`;
+                overlay.innerHTML = `<div class="text-green-400 text-2xl md:text-3xl font-bold mb-4 font-space drop-shadow-[0_0_10px_#4ade80]">${t.pracCorrect}</div><button onclick="window.nextSoloQ(${player.id})" class="px-8 py-3 bg-green-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#16a34a] hover:bg-green-500 transition">▶ ${t.btnNext}</button>`;
             } else {
                 overlay.style.borderColor = "#ef4444";
                 
@@ -1281,7 +1244,7 @@
                 overlay.innerHTML = `
                     <div class="text-red-400 text-2xl md:text-3xl font-bold mb-2 font-space drop-shadow-[0_0_10px_#ef4444]">${titleStr}</div>
                     <div class="text-white text-base md:text-xl font-bold mb-4 bg-red-900/60 px-4 py-2 rounded-lg border border-red-500 text-center shadow-inner tracking-wide w-full flex items-center justify-center">${correctStr}</div>
-                    <button id="solo-next-btn-${player.id}" onclick="nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
+                    <button id="solo-next-btn-${player.id}" onclick="window.nextSoloQ(${player.id})" class="px-8 py-3 bg-red-600 rounded-lg text-white text-xl font-bold shadow-[0_0_15px_#dc2626] hover:bg-red-500 transition w-full">▶ ${t.btnNext}</button>
                 `;
 
                 if (eelEnabled && !isTimeout) {
@@ -1364,69 +1327,56 @@
                 
                 if (mode === 'RANKED') {
                     document.getElementById('leaderboard-box').classList.remove('hidden');
+                    document.getElementById('leaderboard-list').innerHTML = '<div class="text-center text-cyan-400 py-3 font-bold animate-pulse">正在同步成績至雲端...</div>';
                     
                     let dName = rankData.displayType === 'nick' && rankData.nick ? rankData.nick : rankData.sid;
                     let entryName = `${rankData.grade}${rankData.cls} ${dName}`;
                     let accNum = p1.totalAttempts > 0 ? parseFloat(((p1.corrects / p1.totalAttempts) * 100).toFixed(1)) : 0;
                     let pid = `${rankData.grade}-${rankData.cls}-${rankData.sid}`; 
 
-                    // --- 儲存分數到雲端或本地端 ---
-                    if (p1.score > 0) {
-                        if (isCloudEnabled && currentUser && db) {
-                            // 寫入雲端 Ranked Leaderboard (保留最高分)
-                            const rankedRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranked_leaderboard', pid);
-                            const currentRanked = rankedLeaderboardData[pid];
-                            if (!currentRanked || p1.score > currentRanked.score || (p1.score === currentRanked.score && accNum > currentRanked.acc)) {
-                                setDoc(rankedRef, {
-                                    pid: pid,
-                                    name: entryName,
-                                    score: Number(p1.score),
-                                    corrects: Number(p1.corrects),
-                                    acc: accNum,
-                                    time: Date.now()
-                                }, { merge: true }).catch(e => console.error("Cloud Error", e));
-                            }
+                    if (Number(p1.score) > 0) {
+                        let newEntry = { 
+                            pid: pid, 
+                            name: entryName, 
+                            score: Number(p1.score), 
+                            corrects: Number(p1.corrects), 
+                            acc: accNum, 
+                            time: Date.now() 
+                        };
 
-                            // 寫入雲端 Global Leaderboard (累加總分)
-                            const globalRef = doc(db, 'artifacts', appId, 'public', 'data', 'global_leaderboard', pid);
-                            const currentGlobal = globalLeaderboardData[pid];
-                            const newTotal = (currentGlobal ? (Number(currentGlobal.totalScore) || 0) : 0) + Number(p1.score);
-                            setDoc(globalRef, {
-                                pid: pid,
-                                name: entryName,
-                                nick: rankData.nick,
-                                totalScore: newTotal
-                            }, { merge: true }).catch(e => console.error("Cloud Error", e));
-                            
-                        } else {
-                            // 退回本機 LocalStorage 儲存
-                            let lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
-                            lb = lb.filter(e => (Number(e.score) || 0) > 0);
-                            let newEntry = { pid: pid, name: entryName, score: Number(p1.score) || 0, corrects: Number(p1.corrects) || 0, acc: accNum, time: Date.now() };
-                            let existingIdx = lb.findIndex(e => e.pid === pid);
-                            if (existingIdx !== -1) {
-                                if (newEntry.score > lb[existingIdx].score || (newEntry.score === lb[existingIdx].score && newEntry.acc > lb[existingIdx].acc)) {
-                                    lb[existingIdx] = newEntry;
-                                }
-                            } else {
-                                lb.push(newEntry);
+                        let lb = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+                        lb = lb.filter(e => (Number(e.score) || 0) > 0);
+                        let existingIdx = lb.findIndex(e => e.pid === pid);
+                        if (existingIdx !== -1) {
+                            if (newEntry.score > lb[existingIdx].score || (newEntry.score === lb[existingIdx].score && newEntry.acc > lb[existingIdx].acc)) {
+                                lb[existingIdx] = newEntry;
                             }
-                            lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
-                            lb = lb.slice(0, 10); 
-                            localStorage.setItem('trigowar_ranked_lb', JSON.stringify(lb));
-                            
-                            let players = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
-                            if (!players[pid]) players[pid] = { name: entryName, totalScore: 0, nick: rankData.nick };
-                            players[pid].name = entryName; 
-                            players[pid].nick = rankData.nick; 
-                            players[pid].totalScore = (Number(players[pid].totalScore) || 0) + newEntry.score;
-                            localStorage.setItem('trigowar_players', JSON.stringify(players));
+                        } else {
+                            lb.push(newEntry);
+                        }
+                        lb.sort((a, b) => (Number(b.score) - Number(a.score)) || (Number(b.acc) - Number(a.acc)) || (Number(a.time) - Number(b.time)));
+                        lb = lb.slice(0, 10);
+                        localStorage.setItem('trigowar_ranked_lb', JSON.stringify(lb));
+                        
+                        let players = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+                        if (!players[pid]) players[pid] = { name: entryName, totalScore: 0, nick: rankData.nick };
+                        players[pid].name = entryName; 
+                        players[pid].nick = rankData.nick; 
+                        players[pid].totalScore = (Number(players[pid].totalScore) || 0) + newEntry.score;
+                        localStorage.setItem('trigowar_players', JSON.stringify(players));
+
+                        if (GAS_URL.startsWith("http")) {
+                            submitScoreToCloud(newEntry);
+                        } else {
+                            renderRankedLeaderboard();
+                        }
+                    } else {
+                        if (GAS_URL.startsWith("http")) {
+                            fetchLeaderboards();
+                        } else {
+                            renderRankedLeaderboard();
                         }
                     }
-
-                    // 強制觸發一次渲染，避免網路延遲時畫面為空
-                    renderRankedLeaderboard();
-
                 } else {
                     document.getElementById('leaderboard-box').classList.add('hidden');
                 }
@@ -2136,7 +2086,7 @@
 
         window.onload = function() {
             document.getElementById('audio-init-overlay').classList.remove('hidden');
-            renderGlobalLeaderboard(); 
+            window.fetchLeaderboards(); 
             resizeCanvas(); renderCanvas();
         };
     </script>
