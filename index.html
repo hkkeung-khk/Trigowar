@@ -362,9 +362,12 @@
 
     <script>
         // ==========================================
-        // 1. 雲端排行榜與全域變數設定
+        // 1. 變數與畫布宣告
         // ==========================================
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyX3j_4orMOOYSkm9kSOBGbXeuDo_oPhi2rC5gthAUIq0VyIIY1Ax7zHZHBMoExhOswqw/exec"; 
+        
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
 
         let globalLeaderboardData = [];
         let rankedLeaderboardData = [];
@@ -424,7 +427,7 @@
         let gameState = 'INIT'; let isPaused = false; let pauseStartTime = 0; let startTime = 0; let mainTimer = null;
         let globalQuestionsAnswered = 0; let soloTotalTimeMs = 0; let rankData = {}; 
 
-        let isAudioInit = false;
+        let isAudioInit = false; let isInitializingAudio = false;
         const audioFiles = ['pipe_organ.mp3', 'space_metal.mp3', 'war.mp3', 'war2.mp3', 'trigosong.mp3'];
         let menuAudio = null; let battleAudio = null; let menuTrackIdx = -1; let battleTrackIdx = -1;
 
@@ -434,30 +437,46 @@
         function createPlayer(id, color, prefix) {
             return { id, color, prefix, score: 0, corrects: 0, wrongAttempts: 0, totalAttempts: 0, consecutiveWrongs: 0, qStart: 0, currentQ: null, isGenerating: false, dndState: {}, isStunned: false, stunEndTime: 0 };
         }
+        
         const p1 = createPlayer(1, '#0ff', 'p1');
         const p2 = createPlayer(2, '#c084fc', 'p2');
         let p1ShipPos = 0; let p2ShipPos = 0;
 
-        let activeDrags = {}; 
-        let canvas, ctx;
         let canvasW, canvasH, p1Ships = [], p2Ships = [], lasers = [], particles = [], stars = [];
+        let activeDrags = {};
 
         // ==========================================
         // 2. API 與全域輔助函式
         // ==========================================
         async function fetchLeaderboards() {
-            if (!GAS_URL.startsWith("http")) { renderInitLeaderboards(); renderMenuGlobalLeaderboard(); return; }
+            let localGlobalObj = JSON.parse(localStorage.getItem('trigowar_players') || '{}');
+            let localGlobalArr = Object.values(localGlobalObj).map(p => ({ pid: p.pid, name: p.name, totalScore: p.totalScore }));
+            let localRankedArr = JSON.parse(localStorage.getItem('trigowar_ranked_lb') || '[]');
+            
+            if (localGlobalArr.length > 0 || localRankedArr.length > 0) {
+                if (globalLeaderboardData.length === 0) globalLeaderboardData = localGlobalArr;
+                if (rankedLeaderboardData.length === 0) rankedLeaderboardData = localRankedArr;
+                renderInitLeaderboards(); 
+                renderMenuGlobalLeaderboard();
+            }
+
+            if (!GAS_URL.startsWith("http")) return; 
+            
             try {
                 const response = await fetch(GAS_URL);
                 const data = await response.json();
                 if(data.global) globalLeaderboardData = data.global;
                 if(data.ranked) rankedLeaderboardData = data.ranked;
-                renderInitLeaderboards(); renderMenuGlobalLeaderboard();
+                
+                renderInitLeaderboards(); 
+                renderMenuGlobalLeaderboard();
                 if(gameState === 'END' && mode === 'RANKED') renderRankedLeaderboard();
-            } catch(e) {
-                console.error("雲端讀取失敗:", e);
-                renderInitLeaderboards(); renderMenuGlobalLeaderboard();
-            }
+                
+                localStorage.setItem('trigowar_ranked_lb', JSON.stringify(rankedLeaderboardData));
+                let newLocalGlobalObj = {};
+                globalLeaderboardData.forEach(p => { newLocalGlobalObj[p.pid] = p; });
+                localStorage.setItem('trigowar_players', JSON.stringify(newLocalGlobalObj));
+            } catch(e) { console.error("雲端讀取失敗:", e); }
         }
 
         async function submitScoreToCloud(playerData) {
@@ -473,22 +492,23 @@
         }
 
         function playMenuMusic() {
-            if(!isAudioInit) return;
+            if(!isAudioInit || !menuAudio) return;
             if(battleAudio) battleAudio.pause();
-            if(menuAudio) menuAudio.play().catch(e => console.log("Audio play error:", e));
+            menuAudio.play().catch(e => console.log("Audio play error:", e));
         }
 
         function playBattleMusic() {
             if(!isAudioInit) return;
-            if(battleAudio) { battleAudio.pause(); battleAudio.currentTime = 0; }
+            if(battleAudio) { battleAudio.pause(); battleAudio.removeAttribute('src'); battleAudio.load(); }
             if(menuAudio) menuAudio.pause();
+            
             do { battleTrackIdx = Math.floor(Math.random() * audioFiles.length); } while(battleTrackIdx === menuTrackIdx);
             battleAudio = new Audio(audioFiles[battleTrackIdx]);
             battleAudio.loop = true; battleAudio.volume = 0.5;
             battleAudio.play().catch(e => console.log("Audio play error:", e));
         }
 
-        function cleanupDrags(pid) {
+        window.cleanupDrags = function(pid) {
             for (let pointerId in activeDrags) {
                 if (activeDrags[pointerId].pid === pid) {
                     if (activeDrags[pointerId].ghostEl) activeDrags[pointerId].ghostEl.remove();
@@ -496,7 +516,7 @@
                 }
             }
             document.querySelectorAll(`.ghost-drag[data-pid="${pid}"]`).forEach(el => el.remove());
-        }
+        };
 
         function fmt(num) { return (typeof num !== 'number' || Number.isInteger(num)) ? num : Number(num.toPrecision(3)); }
 
@@ -512,7 +532,7 @@
         }
 
         // ==========================================
-        // 4. 介面操作 (全域方法)
+        // 3. UI 互動函式綁定至 Global
         // ==========================================
         window.setLang = function(lang) {
             currentLang = lang; const t = i18n[lang];
@@ -523,7 +543,9 @@
                 const el = document.getElementById(id);
                 if(el) {
                     if (id.startsWith('btn-mode')) el.innerText = t[id.replace('btn-mode-', 'mode').replace('prac', 'Prac').replace('rank', 'Rank').replace('count', 'Count').replace('time', 'Time')];
-                    else if (id.startsWith('lbl-set')) el.innerText = t[id.replace('lbl-', '')];
+                    else if (id === 'lbl-set-count') el.innerText = t.setCount;
+                    else if (id === 'lbl-set-time') el.innerText = t.setTime;
+                    else if (id === 'lbl-set-personal') el.innerText = t.setPersonal;
                     else if (id === 'btn-start') el.innerText = t.btnStart;
                     else if (id === 'opt-grade') el.innerText = t.rankGrade;
                     else if (id === 'opt-class') el.innerText = t.rankClass;
@@ -596,12 +618,21 @@
 
         window.initAudioAndShowMenu = async function(event) {
             if (event) event.stopPropagation();
-            if(isAudioInit) return;
+            if(isAudioInit || isInitializingAudio) return;
+            isInitializingAudio = true; // 上鎖防止重疊點擊產生多個音樂實例
+            
             menuTrackIdx = Math.floor(Math.random() * audioFiles.length);
             menuAudio = new Audio(audioFiles[menuTrackIdx]);
             menuAudio.loop = true; menuAudio.volume = 0.5;
-            try { await menuAudio.play(); } catch(err) { console.log("Audio play error", err); }
-            isAudioInit = true;
+            try { 
+                await menuAudio.play(); 
+                isAudioInit = true;
+            } catch(err) { 
+                console.log("Audio play error", err); 
+                isAudioInit = true;
+            }
+            
+            isInitializingAudio = false; // 解鎖
             document.getElementById('audio-init-overlay').classList.add('hidden');
             window.showMenu();
         };
@@ -622,11 +653,6 @@
                 }
             }
         };
-
-        function showError(msg) {
-            const err = document.getElementById('menu-error');
-            err.innerText = msg; err.classList.remove('hidden');
-        }
 
         window.startPreGameCountdown = function() {
             if (mode === 'RANKED') {
@@ -706,6 +732,11 @@
             if(overlay) { if(overlay.dataset.eelIntv) clearInterval(parseInt(overlay.dataset.eelIntv)); overlay.remove(); }
             generateQuestion(player);
         };
+
+        function showError(msg) {
+            const err = document.getElementById('menu-error');
+            err.innerText = msg; err.classList.remove('hidden');
+        }
 
         // ==========================================
         // 5. 排行榜渲染邏輯
@@ -810,7 +841,7 @@
             p1ShipPos = 0; p2ShipPos = 0; globalQuestionsAnswered = 0; soloTotalTimeMs = 0; gameState = 'PLAYING'; startTime = Date.now();
             lasers = []; particles = [];
 
-            document.querySelectorAll('.ghost-drag').forEach(el => el.remove()); activeDrags = {};
+            cleanupDrags(1); cleanupDrags(2);
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
 
             playBattleMusic(); updateHeaderUI(); 
@@ -922,14 +953,14 @@
                 player.consecutiveWrongs++; addScore(player, -(20 + (player.consecutiveWrongs * 33))); player.wrongAttempts++;
                 const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('shake-err'); setTimeout(() => ws.classList.remove('shake-err'), 300);
                 applyStun(player); player.isGenerating = true;
-                setTimeout(() => { cleanupDrags(player.id); generateQuestion(player); player.isGenerating = false; }, 300); return;
+                setTimeout(() => { window.cleanupDrags(player.id); generateQuestion(player); player.isGenerating = false; }, 300); return;
             }
             if(mode === 'PRACTICE') {
                 if (isTimeout) { player.isGenerating = true; player.consecutiveWrongs = 0; document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert'); showSoloFeedback(player, false, true); return; }
                 player.consecutiveWrongs++; addScore(player, -(20 + (player.consecutiveWrongs * 33))); player.wrongAttempts++;
                 const ws = document.getElementById(`${player.prefix}-workspace`); ws.classList.add('shake-err'); setTimeout(() => ws.classList.remove('shake-err'), 300);
                 if (player.wrongAttempts >= 2 || qDiff >= 2) { player.isGenerating = true; showSoloFeedback(player, false, false); } 
-                else if (qDiff === 1) { if (eelEnabled) applyStun(player); player.dndState = {}; cleanupDrags(player.id); setTimeout(() => renderLevel1Workspace(player), 300); }
+                else if (qDiff === 1) { if (eelEnabled) applyStun(player); player.dndState = {}; window.cleanupDrags(player.id); setTimeout(() => renderLevel1Workspace(player), 300); }
                 return;
             }
             player.isGenerating = true; document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
@@ -939,7 +970,7 @@
             if(qDiff === 2 || qDiff === 3) setTimeout(() => generateQuestion(player), 400);
             else {
                 if((Date.now() - player.qStart) >= (maxPersonalTime*1000) || isTimeout) setTimeout(() => generateQuestion(player), 400);
-                else setTimeout(() => { player.dndState = {}; cleanupDrags(player.id); renderLevel1Workspace(player); player.isGenerating = false; }, 300);
+                else setTimeout(() => { player.dndState = {}; window.cleanupDrags(player.id); renderLevel1Workspace(player); player.isGenerating = false; }, 300);
             }
         }
 
@@ -991,7 +1022,7 @@
             gameState = 'END'; isPaused = false; clearInterval(mainTimer); document.getElementById('gameUI').classList.add('hidden');
             document.querySelectorAll('[id^="practice-overlay-"]').forEach(el => { if(el.dataset.eelIntv) clearInterval(parseInt(el.dataset.eelIntv)); el.remove(); });
             document.querySelectorAll('[id^="stun-overlay-"]').forEach(el => el.remove());
-            document.querySelectorAll('.ghost-drag').forEach(el => el.remove()); activeDrags = {};
+            window.cleanupDrags(1); window.cleanupDrags(2);
             document.getElementById('endScreen').classList.remove('hidden'); playMenuMusic();
             const t = i18n[currentLang];
 
@@ -1046,7 +1077,7 @@
         // 7. 幾何題型生成與 SVG
         // ==========================================
         function generateQuestion(player) {
-            cleanupDrags(player.id); 
+            window.cleanupDrags(player.id); 
             player.qStart = Date.now(); player.isGenerating = false; player.dndState = {}; player.wrongAttempts = 0;
             document.getElementById(`${player.prefix}-workspace`).classList.remove('crisis-alert');
             
@@ -1210,7 +1241,7 @@
             q.options.forEach(opt => {
                 const btn = document.createElement('button'); btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
                 if(opt.includes('/')) { const [n, d] = opt.split('/'); btn.innerHTML = (!isNaN(n) && !isNaN(d)) ? `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>` : opt; } else { btn.innerHTML = opt; }
-                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked || player.isGenerating || player.isStunned) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
                 btn.onclick = (e) => e.preventDefault(); inter.appendChild(btn);
             });
         }
@@ -1222,13 +1253,13 @@
             q.options.forEach(opt => {
                 const btn = document.createElement('button'); btn.className = `btn-l2 text-white font-space text-sm md:text-lg rounded-lg font-bold w-full h-full min-h-[40px] flex items-center justify-center`;
                 if(opt.includes('/')) { const [n, d] = opt.split('/'); btn.innerHTML = (!isNaN(n) && !isNaN(d)) ? `<div class="inline-flex flex-col items-center leading-none justify-center h-full"><span class="border-b-[2px] border-white/80 px-2 pb-[2px]">${n}</span><span class="px-2 pt-[3px]">${d}</span></div>` : opt; } else { btn.innerHTML = opt; }
-                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
+                btn.onpointerdown = (e) => { e.preventDefault(); if (isPaused || btn.dataset.clicked || player.isGenerating || player.isStunned) return; btn.dataset.clicked = "true"; player.totalAttempts++; if(opt === q.answer) triggerCorrectAnswer(player); else triggerWrongAnswer(player, false); };
                 btn.onclick = (e) => e.preventDefault(); inter.appendChild(btn);
             });
         }
 
         function renderLevel1Workspace(player) {
-            cleanupDrags(player.id); const q = player.currentQ;
+            window.cleanupDrags(player.id); const q = player.currentQ;
             const promptEl = document.getElementById(`${player.prefix}-prompt`); const svgEl = document.getElementById(`${player.prefix}-svg-container`); const interEl = document.getElementById(`${player.prefix}-interaction`);
             interEl.className = "h-14 md:h-16 flex items-center justify-center gap-2 md:gap-3"; let svgHtml = '';
             if(q.type === 1) { 
@@ -1263,7 +1294,12 @@
         // 8. 拖曳機制與動畫
         // ==========================================
         function attachDragListeners(player) { document.querySelectorAll(`.draggable[data-pid="${player.id}"]`).forEach(el => { el.addEventListener('pointerdown', handleDragStart); }); }
-        function handleDragStart(e) { e.preventDefault(); const el = e.currentTarget; if(isPaused || el.style.opacity === '0.3' || activeDrags[e.pointerId]) return; const ghost = el.cloneNode(true); ghost.classList.add('ghost-drag'); ghost.style.left = `${e.clientX - el.offsetWidth/2}px`; ghost.style.top = `${e.clientY - el.offsetHeight/2}px`; document.body.appendChild(ghost); el.style.opacity = '0.3'; activeDrags[e.pointerId] = { element: el, val: el.getAttribute('data-val'), pid: parseInt(el.getAttribute('data-pid')), ghostEl: ghost }; el.setPointerCapture(e.pointerId); el.addEventListener('pointermove', handleDragMove); el.addEventListener('pointerup', handleDragEnd); el.addEventListener('pointercancel', handleDragEnd); }
+        function handleDragStart(e) { 
+            e.preventDefault(); const el = e.currentTarget; 
+            const pid = parseInt(el.getAttribute('data-pid')); const player = pid === 1 ? p1 : p2;
+            if(isPaused || el.style.opacity === '0.3' || activeDrags[e.pointerId] || player.isGenerating || player.isStunned) return; 
+            const ghost = el.cloneNode(true); ghost.classList.add('ghost-drag'); ghost.style.left = `${e.clientX - el.offsetWidth/2}px`; ghost.style.top = `${e.clientY - el.offsetHeight/2}px`; document.body.appendChild(ghost); el.style.opacity = '0.3'; activeDrags[e.pointerId] = { element: el, val: el.getAttribute('data-val'), pid: pid, ghostEl: ghost }; el.setPointerCapture(e.pointerId); el.addEventListener('pointermove', handleDragMove); el.addEventListener('pointerup', handleDragEnd); el.addEventListener('pointercancel', handleDragEnd); 
+        }
         function handleDragMove(e) { e.preventDefault(); const drag = activeDrags[e.pointerId]; if(!drag || !drag.ghostEl) return; drag.ghostEl.style.left = `${e.clientX - drag.ghostEl.offsetWidth/2}px`; drag.ghostEl.style.top = `${e.clientY - drag.ghostEl.offsetHeight/2}px`; }
         function handleDragEnd(e) { const el = e.currentTarget; el.removeEventListener('pointermove', handleDragMove); el.removeEventListener('pointerup', handleDragEnd); el.removeEventListener('pointercancel', handleDragEnd); try { if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId); } catch(err) {} const drag = activeDrags[e.pointerId]; if(!drag) return; drag.ghostEl.style.visibility = 'hidden'; const elements = document.elementsFromPoint(e.clientX, e.clientY) || []; let dropZone = Array.from(elements).find(target => target.classList && target.classList.contains('drop-zone') && parseInt(target.getAttribute('data-pid')) === drag.pid); const player = drag.pid === 1 ? p1 : p2; const val = drag.val; if (dropZone) processDrop(player, val, dropZone.getAttribute('data-target')); else drag.element.style.opacity = '1'; if (drag.ghostEl && drag.ghostEl.parentNode) drag.ghostEl.remove(); delete activeDrags[e.pointerId]; }
         
